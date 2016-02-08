@@ -60,7 +60,7 @@ app.get('/results',function(req, res){
         text.split(".").forEach(function (sentence) {
              // throw away extra whitespace and non-alphanumeric characters
             sentence = sentence.replace(/\s+/g, " ")
-                   .replace(/[^a-zA-Z ]/g, "");
+                   .replace(/[^a-zA-Z0-9 ]/g, "");
         
             lineNumberProfile++;
             
