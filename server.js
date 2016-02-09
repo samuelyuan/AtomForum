@@ -32,13 +32,16 @@ app.get('/results',function(req, res){
         var startDisplayLine = 0;
         var endDisplayLine = 0;
         
+        var isReddit = false;
+        
         //First find the start and end markers for displaying content
         text.split(".").forEach(function (sentence) {
             sentence = sentence.replace(/\s+/g, " ")
-                                .replace(/[^a-zA-Z ]/g, "");
+                                .replace(/[^a-zA-Z0-9 ]/g, "");
             
             lineNumberProfile++;
-            
+
+            //For most online forums
             if (sentence.toLowerCase().indexOf("profile") > -1)
             {
                 //The actual forum post data starts from here (line #), not from line #0. 
@@ -48,10 +51,32 @@ app.get('/results',function(req, res){
                 }
             }
             
-            //Usually placed at the end of a thread
+            //Usually placed at the end of a thread (non-reddit)
             if (sentence.toLowerCase().indexOf("login") > -1 || sentence.toLowerCase().indexOf("log in") > -1 )
             {
-                endDisplayLine = lineNumberProfile;
+                //can't have an end without a start
+                if (startDisplayLine != 0 && isReddit == false)
+                {
+                    endDisplayLine = lineNumberProfile;
+                }
+            }
+            
+            //Special case for reddit
+            if (sentence.toLowerCase().indexOf("2ex paddingright 5px") > -1)
+            {
+                if (startDisplayLine == 0)
+                {
+                    startDisplayLine = lineNumberProfile;
+                    isReddit = true;
+                }
+            }
+            
+            if (sentence.toLowerCase().indexOf("redditstatic") > -1)
+            {
+                if (endDisplayLine == 0)
+                {
+                    endDisplayLine = lineNumberProfile;
+                }
             }
         });
         
