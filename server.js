@@ -3,7 +3,7 @@ var request = require("request"),
     express = require("express");
 var app     = express();
 var path = require ('path');
-    
+
 // set the view engine to ejs
 app.set('view engine', 'ejs');
 
@@ -104,6 +104,62 @@ var getSentenceData = function(text)
     return sentenceData;
 }
 
+/////////
+var getUserInfo = function(text) {
+    var user = [];
+    var count = 0;
+    var lineNumberProfile = 0;
+    
+    // split data into sentences using a period as a separator
+    text.split(".").forEach(function (sentence) {
+        // throw away extra whitespace and non-alphanumeric characters
+        sentence = sentence.replace(/\s+/g, " ")
+                .replace(/[^a-zA-Z0-9 ]/g, "");
+                        
+        lineNumberProfile++;
+         
+        if (isWordInSentence(sentence, "goldreply")) {
+            var i = sentence.indexOf("goldreply")+9;
+            var a_user = sentence[i];
+            while (sentence[i] != " ") {
+                i++;
+                a_user += sentence[i];
+            }
+            a_user = a_user.substring(0, a_user.length - 1);
+            if (a_user === "load") {
+                /*i++;
+                var check = sentence[i];
+                while (sentence[i] != " "){
+                    check += sentence[i];
+                }
+                if (check == "more") {
+                    i++;
+                    var check = sentence[i];
+                    while (sentence[i] != " "){
+                        check += sentence[i];
+                    }
+                    if (check != "comments") {
+                        check = "!";
+                    }
+                }*/
+            }
+            else {
+                if (user.indexOf(a_user) == -1) {
+                    count++;
+                    user.push(a_user);
+                    console.log("user: " + a_user);
+                }
+                
+            }
+        }
+    });
+    console.log("arsize" +user.length);
+    console.log("count" +count);
+    return user;
+
+}
+////////
+
 app.get('/results',function(req, res){
     var dataString = "";
     
@@ -120,6 +176,7 @@ app.get('/results',function(req, res){
 
         //get the data to display        
         var sentenceData = getSentenceData(text);
+        var userData = getUserInfo(text);
         
         res.render('results', {
             sentenceData: sentenceData
