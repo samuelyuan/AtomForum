@@ -31,8 +31,11 @@
      <div class="container">
         <h2>Thread Content</h2>
         
-        <% sentenceData.forEach(function(sentence) { %>
-        <p> <%= sentence %> </p>
+        <% sentenceData.forEach(function(sentence, index) { %>
+            <% if (newPostLines.indexOf(index) > -1) { %>
+                <hr />
+            <% } %>
+            <p> <%= sentence %> </p>
         <% }); %>
     </div>
 </body> 
