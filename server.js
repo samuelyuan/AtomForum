@@ -104,11 +104,15 @@ var getSentenceData = function(text)
     return sentenceData;
 }
 
-/////////
-var getUserInfo = function(text) {
+var getUserInfo = function(text) 
+{
     var user = [];
+    var newPostLines = []; //separate each user's posts with a line
     var count = 0;
     var lineNumberProfile = 0;
+    
+    //First find the start and end markers for displaying content
+    lineMarkers = getStartEndLines(text);
     
     // split data into sentences using a period as a separator
     text.split(".").forEach(function (sentence) {
@@ -117,16 +121,20 @@ var getUserInfo = function(text) {
                 .replace(/[^a-zA-Z0-9 ]/g, "");
                         
         lineNumberProfile++;
-         
+        
+        //Search for username
         if (isWordInSentence(sentence, "goldreply")) {
-            var i = sentence.indexOf("goldreply")+9;
-            var a_user = sentence[i];
-            while (sentence[i] != " ") {
-                i++;
-                a_user += sentence[i];
-            }
-            a_user = a_user.substring(0, a_user.length - 1);
+            //Offset by the start line number
+            newPostLines.push(lineNumberProfile - lineMarkers.startLine);
+            
+            //The username should show up right after the word
+            var i = sentence.indexOf("goldreply") + 9;
+            var a_user = sentence.substring(i, sentence.indexOf(" ", i));
+            i += a_user.length + 1;
+            
+            //the word "load" should imply "load more comments", so not a real user 
             if (a_user === "load") {
+                
                 /*i++;
                 var check = sentence[i];
                 while (sentence[i] != " "){
@@ -144,6 +152,7 @@ var getUserInfo = function(text) {
                 }*/
             }
             else {
+                //if the user hasn't been added to the list of users, add it
                 if (user.indexOf(a_user) == -1) {
                     count++;
                     user.push(a_user);
@@ -153,12 +162,13 @@ var getUserInfo = function(text) {
             }
         }
     });
-    console.log("arsize" +user.length);
-    console.log("count" +count);
-    return user;
-
+    
+    return {
+        users: user,
+        newPostLines: newPostLines
+    };
 }
-////////
+
 
 app.get('/results',function(req, res){
     var dataString = "";
@@ -179,7 +189,8 @@ app.get('/results',function(req, res){
         var userData = getUserInfo(text);
         
         res.render('results', {
-            sentenceData: sentenceData
+            sentenceData: sentenceData,
+            newPostLines: userData.newPostLines
         });
     });
 });
