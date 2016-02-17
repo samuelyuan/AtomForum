@@ -134,7 +134,6 @@ var getUserInfo = function(text)
             
             //the word "load" should imply "load more comments", so not a real user 
             if (a_user === "load") {
-                
                 /*i++;
                 var check = sentence[i];
                 while (sentence[i] != " "){
@@ -158,7 +157,6 @@ var getUserInfo = function(text)
                     user.push(a_user);
                     console.log("user: " + a_user);
                 }
-                
             }
         }
     });

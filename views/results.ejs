@@ -31,9 +31,12 @@
      <div class="container">
         <h2>Thread Content</h2>
         
+        <% var i = 1; %>
         <% sentenceData.forEach(function(sentence, index) { %>
             <% if (newPostLines.indexOf(index) > -1) { %>
                 <hr />
+                <b>#<%= i %></b> <br />
+                <% i++; %>
             <% } %>
             <p> <%= sentence %> </p>
         <% }); %>
