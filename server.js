@@ -86,7 +86,9 @@ var getSentenceData = function(text)
     
     // split data into sentences using a period as a separator
     text.split(".").forEach(function (sentence) {
-         // throw away extra whitespace and non-alphanumeric characters
+        sentence = cleanSentence(sentence);
+        
+        // throw away extra whitespace and non-alphanumeric characters
         sentence = sentence.replace(/\s+/g, " ")
                .replace(/[^a-zA-Z0-9 ]/g, "");
 
@@ -115,7 +117,7 @@ var getUserInfo = function(text)
     lineMarkers = getStartEndLines(text);
     
     // split data into sentences using a period as a separator
-    text.split(".").forEach(function (sentence) {
+    text.split(".").forEach(function (sentence) {        
         // throw away extra whitespace and non-alphanumeric characters
         sentence = sentence.replace(/\s+/g, " ")
                 .replace(/[^a-zA-Z0-9 ]/g, "");
@@ -167,6 +169,20 @@ var getUserInfo = function(text)
     };
 }
 
+var cleanSentence = function(sentence)
+{
+    //remove anything that isn't actually part of the main content
+    sentence = sentence.replace(/permalinksavereportgive/g, "");
+    sentence = sentence.replace(/permalinksaveparentreportgive/g, "");
+    sentence = sentence.replace(/load more comments/g, "");
+    sentence = sentence.replace(/continue this thread/g, "");
+    sentence = sentence.replace(/[0-9]+ points/g, "");
+    sentence = sentence.replace(/1 child/g, "");
+    sentence = sentence.replace(/[0-9]+ children/g, "");
+    sentence = sentence.replace(/[0-9]+ replies/g, "");
+    
+    return sentence;
+}
 
 app.get('/results',function(req, res){
     var dataString = "";
