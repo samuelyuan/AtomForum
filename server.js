@@ -85,14 +85,14 @@ var getSentenceData = function(text)
     lineMarkers = getStartEndLines(text);
     
     // split data into sentences using a period as a separator
-    text.split(".").forEach(function (sentence) {
+    text.split("goldreply").forEach(function (sentence) {
         
-        sentence = cleanSentence(sentence);
         
         // throw away extra whitespace and non-alphanumeric characters
         sentence = sentence.replace(/\s+/g, " ")
                .replace(/[^a-zA-Z0-9 ]/g, "");
-
+                                    
+        sentence = cleanSentence(sentence);
         lineNumberProfile++;
 
          //Ignore anything that isn't an actual post
@@ -109,7 +109,7 @@ var getSentenceData = function(text)
 
 var getUserInfo = function(text) 
 {
-    var user = [];
+    var userMap = new Map();
     var newPostLines = []; //separate each user's posts with a line
     var count = 0;
     var lineNumberProfile = 0;
@@ -118,54 +118,44 @@ var getUserInfo = function(text)
     lineMarkers = getStartEndLines(text);
     
     // split data into sentences using a period as a separator
-    text.split(".").forEach(function (sentence) {        
+    text.split("goldreply").forEach(function (sentence) {
         // throw away extra whitespace and non-alphanumeric characters
         sentence = sentence.replace(/\s+/g, " ")
                 .replace(/[^a-zA-Z0-9 ]/g, "");
+                                    
+        sentence = cleanSentence(sentence);
                         
         lineNumberProfile++;
         
-        //Search for username
-        if (isWordInSentence(sentence, "goldreply")) {
-            //Offset by the start line number
-            newPostLines.push(lineNumberProfile - lineMarkers.startLine);
-            
-            //The username should show up right after the word
-            var i = sentence.indexOf("goldreply") + 9;
-            var a_user = sentence.substring(i, sentence.indexOf(" ", i));
-            i += a_user.length + 1;
-            
-            //the word "load" should imply "load more comments", so not a real user 
-            if (a_user === "load") {
-                /*i++;
-                var check = sentence[i];
-                while (sentence[i] != " "){
-                    check += sentence[i];
-                }
-                if (check == "more") {
-                    i++;
-                    var check = sentence[i];
-                    while (sentence[i] != " "){
-                        check += sentence[i];
-                    }
-                    if (check != "comments") {
-                        check = "!";
-                    }
-                }*/
-            }
-            else {
-                //if the user hasn't been added to the list of users, add it
-                if (user.indexOf(a_user) == -1) {
-                    count++;
-                    user.push(a_user);
-                    console.log("user: " + a_user);
-                }
-            }
+        var arrayOfstr = sentence.split(" ");
+        var i = 0;
+        while( i != arrayOfstr.length && (arrayOfstr[i] == "deleted" || sentence[i] == "removed")) {
+            i++;
         }
+        var a_user = arrayOfstr[i];
+        console.log("name: ",a_user);
+        i++;
+        var post = arrayOfstr[i];
+        while (i != arrayOfstr.length) {
+            i++;
+            post = post + " " + arrayOfstr[i];
+        }
+        console.log("\npost: ",post);
+        
+        if (userMap.has(a_user)) {
+            userMap.get(a_user).push(post);
+        }
+        if (!userMap.has(a_user)) {
+            userMap.set(a_user,[]);
+            userMap.get(a_user).push(post);
+                                    
+        }
+        console.log("\nsize:", userMap.get(a_user).length);
+        console.log("\n");
     });
     
     return {
-        users: user,
+        userMap: userMap,
         newPostLines: newPostLines
     };
 }
@@ -182,6 +172,9 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/[0-9]+ children/g, "");
     sentence = sentence.replace(/[0-9]+ replies/g, "");
     sentence = sentence.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
+    sentence = sentence.replace(/[0-9]+ hours ago/g, "");
+    sentence = sentence.replace(/[0-9]+ replydeleted removed/g, "");
+    sentence = sentence.replace(/[0-9]+ reply/g, "");
     
     return sentence;
 }
