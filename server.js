@@ -25,7 +25,7 @@ var getStartEndLines = function(text)
     var isReddit = false;
     
     // split data into sentences using a period as a separator
-    text.split(".").forEach(function (sentence) {
+    text.split("goldreply").forEach(function (sentence) {
         sentence = sentence.replace(/\s+/g, " ")
                             .replace(/[^a-zA-Z0-9 ]/g, "");
 
@@ -65,7 +65,7 @@ var getStartEndLines = function(text)
         {
             if (endDisplayLine == 0)
             {
-                endDisplayLine = lineNumberProfile;
+                endDisplayLine = lineNumberProfile - 1;
             }
         }
     });
@@ -86,19 +86,26 @@ var getSentenceData = function(text)
     
     // split data into sentences using a period as a separator
     text.split("goldreply").forEach(function (sentence) {
-        
-        
         // throw away extra whitespace and non-alphanumeric characters
         sentence = sentence.replace(/\s+/g, " ")
                .replace(/[^a-zA-Z0-9 ]/g, "");
-                                    
+                        
         sentence = cleanSentence(sentence);
         lineNumberProfile++;
 
          //Ignore anything that isn't an actual post
         if (lineNumberProfile >= lineMarkers.startLine 
             && lineNumberProfile <= lineMarkers.endLine)
-        {
+        {   
+            if (lineNumberProfile == lineMarkers.startLine)
+            {
+                //remove extra information before the start marker
+                sentence = sentence.substring(sentence.indexOf("2ex paddingright 5px"));
+                
+                //remove the start marker 
+                sentence = sentence.replace(/2ex paddingright 5px [0-9]+/g, "");
+            }
+            
             //Add sentence to overall data
             sentenceData.push(sentence);
         }
@@ -126,6 +133,7 @@ var getUserInfo = function(text)
         sentence = cleanSentence(sentence);
                         
         lineNumberProfile++;
+        newPostLines.push(lineNumberProfile);
         
         var arrayOfstr = sentence.split(" ");
         var i = 0;
@@ -133,14 +141,14 @@ var getUserInfo = function(text)
             i++;
         }
         var a_user = arrayOfstr[i];
-        console.log("name: ",a_user);
+        //console.log("name: ",a_user);
         i++;
         var post = arrayOfstr[i];
         while (i != arrayOfstr.length) {
             i++;
             post = post + " " + arrayOfstr[i];
         }
-        console.log("\npost: ",post);
+        //console.log("\npost: ",post);
         
         if (userMap.has(a_user)) {
             userMap.get(a_user).push(post);
@@ -150,8 +158,8 @@ var getUserInfo = function(text)
             userMap.get(a_user).push(post);
                                     
         }
-        console.log("\nsize:", userMap.get(a_user).length);
-        console.log("\n");
+        //console.log("\nsize:", userMap.get(a_user).length);
+        //console.log("\n");
     });
     
     return {
@@ -171,10 +179,11 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/1 child/g, "");
     sentence = sentence.replace(/[0-9]+ children/g, "");
     sentence = sentence.replace(/[0-9]+ replies/g, "");
-    sentence = sentence.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
+    sentence = sentence.replace(/1 hour ago/g, "");
     sentence = sentence.replace(/[0-9]+ hours ago/g, "");
     sentence = sentence.replace(/[0-9]+ replydeleted removed/g, "");
     sentence = sentence.replace(/[0-9]+ reply/g, "");
+    sentence = sentence.replace(/[0-9]+ commentsshareloadingtop/g, "");
     
     return sentence;
 }
