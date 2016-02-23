@@ -86,6 +86,7 @@ var getSentenceData = function(text)
     
     // split data into sentences using a period as a separator
     text.split(".").forEach(function (sentence) {
+        
         sentence = cleanSentence(sentence);
         
         // throw away extra whitespace and non-alphanumeric characters
@@ -180,6 +181,7 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/1 child/g, "");
     sentence = sentence.replace(/[0-9]+ children/g, "");
     sentence = sentence.replace(/[0-9]+ replies/g, "");
+    sentence = sentence.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
     
     return sentence;
 }
