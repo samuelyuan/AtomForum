@@ -87,8 +87,8 @@ var getSentenceData = function(text)
     // split data into sentences using a period as a separator
     text.split("goldreply").forEach(function (sentence) {
         // throw away extra whitespace and non-alphanumeric characters
-        sentence = sentence.replace(/\s+/g, " ")
-               .replace(/[^a-zA-Z0-9 ]/g, "");
+        //sentence = sentence.replace(/\s+/g, " ")
+        //       .replace(/[^a-zA-Z0-9 ]/g, "");
                         
         sentence = cleanSentence(sentence);
         lineNumberProfile++;
@@ -100,10 +100,10 @@ var getSentenceData = function(text)
             if (lineNumberProfile == lineMarkers.startLine)
             {
                 //remove extra information before the start marker
-                sentence = sentence.substring(sentence.indexOf("2ex paddingright 5px"));
+                sentence = sentence.substring(sentence.indexOf("2ex; padding-right: 5px; }"));
                 
                 //remove the start marker 
-                sentence = sentence.replace(/2ex paddingright 5px [0-9]+/g, "");
+                sentence = sentence.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
             }
             
             //Add sentence to overall data
@@ -136,19 +136,20 @@ var getUserInfo = function(text)
         newPostLines.push(lineNumberProfile);
         
         var arrayOfstr = sentence.split(" ");
+        console.log("Array: " + arrayOfstr);
         var i = 0;
-        while( i != arrayOfstr.length && (arrayOfstr[i] == "deleted" || sentence[i] == "removed")) {
+        while( i != arrayOfstr.length && (arrayOfstr[i] == "deleted" || sentence[i] == "removed" || arrayOfstr[i] == "")) {
             i++;
         }
         var a_user = arrayOfstr[i];
-        //console.log("name: ",a_user);
+        console.log("name: ",a_user);
         i++;
         var post = arrayOfstr[i];
         while (i != arrayOfstr.length) {
             i++;
             post = post + " " + arrayOfstr[i];
         }
-        //console.log("\npost: ",post);
+        console.log("\npost: ",post);
         
         if (userMap.has(a_user)) {
             userMap.get(a_user).push(post);
@@ -175,15 +176,27 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/permalinksaveparentreportgive/g, "");
     sentence = sentence.replace(/load more comments/g, "");
     sentence = sentence.replace(/continue this thread/g, "");
+    
+    sentence = sentence.replace(/1 point/g, "");
     sentence = sentence.replace(/[0-9]+ points/g, "");
+    
     sentence = sentence.replace(/1 child/g, "");
     sentence = sentence.replace(/[0-9]+ children/g, "");
+    
     sentence = sentence.replace(/[0-9]+ replies/g, "");
+    
     sentence = sentence.replace(/1 hour ago/g, "");
     sentence = sentence.replace(/[0-9]+ hours ago/g, "");
+    sentence = sentence.replace(/[0-9]+ minutes ago/g, "");
+    
     sentence = sentence.replace(/[0-9]+ replydeleted removed/g, "");
     sentence = sentence.replace(/[0-9]+ reply/g, "");
     sentence = sentence.replace(/[0-9]+ commentsshareloadingtop/g, "");
+    sentence = sentence.replace(/sorted by: besttopnewcontroversialoldrandomq&a/g, "");
+    sentence = sentence.replace(/top [0-9]+ commentsshow [0-9]+/g, "");
+    sentence = sentence.replace(/commentsshareloading.../g, "");
+    sentence = sentence.replace(/\(\)/g, "");
+    sentence = sentence.replace(/\[score hidden\]/g, "");
     
     return sentence;
 }
