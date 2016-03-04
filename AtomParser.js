@@ -125,10 +125,19 @@ exports.getSentenceData = function(text)
                 
                 //remove the start marker 
                 sentence = sentence.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
+                
+                sentenceArr = sentence.split("\[\–\]");
+                
+                sentenceData.push(sentenceArr[0]);
+                sentenceData.push(sentenceArr[1]);
             }
-            
-            //Add sentence to overall data
-            sentenceData.push(sentence);
+            else
+            {
+                sentence = sentence.replace("\[\–\]", "");
+                
+                //Add sentence to overall data
+                sentenceData.push(sentence);
+            }
         }
     });
     
@@ -155,22 +164,22 @@ exports.getUserInfo = function(text)
                         
         lineNumberProfile++;
         newPostLines.push(lineNumberProfile);
-        
+
         var arrayOfstr = sentence.split(" ");
-        console.log("Array: " + arrayOfstr);
+        //console.log("Array: " + arrayOfstr);
         var i = 0;
         while( i != arrayOfstr.length && (arrayOfstr[i] == "deleted" || sentence[i] == "removed" || arrayOfstr[i] == "")) {
             i++;
         }
         var a_user = arrayOfstr[i];
-        console.log("name: ",a_user);
+        //console.log("name: ",a_user);
         i++;
         var post = arrayOfstr[i];
         while (i != arrayOfstr.length) {
             i++;
             post = post + " " + arrayOfstr[i];
         }
-        console.log("\npost: ",post);
+        //console.log("\npost: ",post);
         
         if (userMap.has(a_user)) {
             userMap.get(a_user).push(post);
