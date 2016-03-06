@@ -199,7 +199,8 @@ exports.getUserInfo = function(text)
 exports.getSummarizedText = function(sentenceData)
 {
     var hiddenLines = [];
-    
+    var firstSentence = [];
+    var NotfstSentence = [];
     var lineNumber = 0;
     sentenceData.forEach(function(post) {
         var words = post.split(" ");
@@ -208,12 +209,21 @@ exports.getSummarizedText = function(sentenceData)
         {
             hiddenLines.push(lineNumber);
         }
-        
+        else if (words.length >= 10) {
+            var sentences = post.split(".");
+            firstSentence.push(sentences[0]);
+            var i=0;
+            for (i=1; i<sentences.length; i++) {
+                NotfstSentence.push(sentences[i]);
+            }
+        }
         lineNumber++;
     });
     
     
     return {
-        hiddenLines: hiddenLines
+        hiddenLines: hiddenLines,
+        firstSentence: firstSentence,
+        NotfstSentence: NotfstSentence
     };
 }

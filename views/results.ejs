@@ -38,16 +38,21 @@
                 <b>#<%= i %></b> <br />
                 <% i++; %>
             <% } %>
+            <% var demoStr = "#demo" + index; %>
+            <% var idStr = "demo" + index; %>
             <% if (hiddenLines.indexOf(index) > -1) { %>
-                <% var demoStr = "#demo" + index; %>
-                <% var idStr = "demo" + index; %>
+
                 <button data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</button>
 
                 <div id='<%= idStr %>' class="collapse">
                 <p> <%= sentence %> </p>
                 </div>
             <% } else { %>
-                <p> <%= sentence %> </p>
+                <p> <%= sentence.split(".")[0] %> </p>
+                <button data-toggle="collapse" data-target='<%= demoStr %>'>Show More</button>
+                <div id='<%= idStr %>' class="collapse">
+                    <p> <%= sentence.substring(sentence.indexOf(".") + 1) %> </p>
+                </div>
             <% } %>
         <% }); %>
     </div>

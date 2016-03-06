@@ -34,7 +34,9 @@ app.get('/results',function(req, res){
         res.render('results', {
             sentenceData: sentenceData,
             newPostLines: userData.newPostLines,
-            hiddenLines: summaryData.hiddenLines
+            hiddenLines: summaryData.hiddenLines,
+            firstSentence: summaryData.firstSentence,
+            NotfstSentence: summaryData.NotfstSentence,
         });
     });
 });
