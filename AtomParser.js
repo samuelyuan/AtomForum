@@ -50,10 +50,7 @@ var getStartEndLines = function(text)
 
         if (isWordInSentence(sentence, "redditstatic"))
         {
-            if (endDisplayLine == 0)
-            {
-                endDisplayLine = lineNumberProfile - 1;
-            }
+            endDisplayLine = lineNumberProfile - 1;
         }
     });
     
