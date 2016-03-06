@@ -198,3 +198,25 @@ exports.getUserInfo = function(text)
         newPostLines: newPostLines
     };
 }
+
+exports.getSummarizedText = function(sentenceData)
+{
+    var hiddenLines = [];
+    
+    var lineNumber = 0;
+    sentenceData.forEach(function(post) {
+        var words = post.split(" ");
+        
+        if (words.length < 10)
+        {
+            hiddenLines.push(lineNumber);
+        }
+        
+        lineNumber++;
+    });
+    
+    
+    return {
+        hiddenLines: hiddenLines
+    };
+}

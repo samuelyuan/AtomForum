@@ -29,10 +29,12 @@ app.get('/results',function(req, res){
         //get the data to display        
         var sentenceData = atomParser.getSentenceData(text);
         var userData = atomParser.getUserInfo(text);
+        var summaryData = atomParser.getSummarizedText(sentenceData);
         
         res.render('results', {
             sentenceData: sentenceData,
-            newPostLines: userData.newPostLines
+            newPostLines: userData.newPostLines,
+            hiddenLines: summaryData.hiddenLines
         });
     });
 });

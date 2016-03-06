@@ -38,7 +38,17 @@
                 <b>#<%= i %></b> <br />
                 <% i++; %>
             <% } %>
-            <p> <%= sentence %> </p>
+            <% if (hiddenLines.indexOf(index) > -1) { %>
+                <% var demoStr = "#demo" + index; %>
+                <% var idStr = "demo" + index; %>
+                <button data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</button>
+
+                <div id='<%= idStr %>' class="collapse">
+                <p> <%= sentence %> </p>
+                </div>
+            <% } else { %>
+                <p> <%= sentence %> </p>
+            <% } %>
         <% }); %>
     </div>
 </body> 
