@@ -29,31 +29,41 @@
   </div>
 </nav>
      <div class="container">
-        <h2>Thread Content</h2>
-        
         <% var i = 1; %>
         <% sentenceData.forEach(function(sentence, index) { %>
+            <!-- Mark post number -->
             <% if (newPostLines.indexOf(index) > -1) { %>
                 <hr />
-                <b>#<%= i %></b> <br />
+                <b>#<%= i %></b> 
                 <% i++; %>
             <% } %>
-            <% var demoStr = "#demo" + index; %>
-            <% var idStr = "demo" + index; %>
-            <% if (hiddenLines.indexOf(index) > -1) { %>
-
-                <button data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</button>
+         
+            <% 
+                var demoStr = "#demo" + index;
+                var idStr = "demo" + index; 
+            %>
+         
+            <!-- Display post title -->
+            <% if (index == 0) { %>
+                <div class="alert alert-info" role="alert"> 
+                    <b><%= sentence %></b>
+                </div>
+            <!-- Hide posts that are too short -->
+            <% } else if (hiddenLines.indexOf(index) > -1) { %>
+                <a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a>
 
                 <div id='<%= idStr %>' class="collapse">
-                <p> <%= sentence %> </p>
+                    <p> <%= sentence %> </p>
                 </div>
-            <% } else { %>
+            <!-- Display first sentence for preview -->
+            <% } else if (index > 0) { %>
                 <p> <%= sentence.split(".")[0] %> </p>
-                <button data-toggle="collapse" data-target='<%= demoStr %>'>Show More</button>
+                <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
                 <div id='<%= idStr %>' class="collapse">
                     <p> <%= sentence.substring(sentence.indexOf(".") + 1) %> </p>
                 </div>
             <% } %>
+         
         <% }); %>
     </div>
 </body> 

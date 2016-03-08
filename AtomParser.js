@@ -77,6 +77,7 @@ var cleanSentence = function(sentence)
     
     sentence = sentence.replace(/[0-9]+ replies/g, "");
     
+    sentence = sentence.replace(/[0-9]+s/g, "");
     sentence = sentence.replace(/1 hour ago/g, "");
     sentence = sentence.replace(/[0-9]+ hours ago/g, "");
     sentence = sentence.replace(/[0-9]+ minutes ago/g, "");
@@ -85,9 +86,10 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/[0-9]+ replydeleted removed/g, "");
     sentence = sentence.replace(/[0-9]+ reply/g, "");
     sentence = sentence.replace(/[0-9]+ commentsshareloadingtop/g, "");
-    sentence = sentence.replace(/sorted by: besttopnewcontroversialoldrandomq&a/g, "");
-    sentence = sentence.replace(/top [0-9]+ commentsshow [0-9]+/g, "");
-    sentence = sentence.replace(/commentsshareloading.../g, "");
+    sentence = sentence.replace(/besttopnewcontroversialoldrandomq&a/g, "");
+    sentence = sentence.replace(/top [0-9]+ comments/g, "");
+    //sentence = sentence.replace(/[0-9]+ show orted by/g, "");
+    sentence = sentence.replace(/commentsshare/g, "");
     sentence = sentence.replace(/\(\)/g, "");
     sentence = sentence.replace(/\[score hidden\]/g, "");
     
