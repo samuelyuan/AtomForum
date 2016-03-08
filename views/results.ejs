@@ -34,16 +34,17 @@
             <!-- Mark post number -->
             <% if (newPostLines.indexOf(index) > -1) { %>
                 <hr />
-                <b>#<%= i %></b> 
+                <b>#<%= i %></b>
+                <i><%= sentence.split(" ")[0] %></i>
                 <% i++; %>
             <% } %>
-         
             <% 
                 var demoStr = "#demo" + index;
                 var idStr = "demo" + index; 
             %>
          
             <!-- Display post title -->
+            <% sentence = sentence.substring(sentence.indexOf(" ") + 1) %>
             <% if (index == 0) { %>
                 <div class="alert alert-info" role="alert"> 
                     <b><%= sentence %></b>
