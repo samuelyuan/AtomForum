@@ -210,14 +210,34 @@ exports.getSummarizedText = function(sentenceData)
         if (words.length < 10)
         {
             hiddenLines.push(lineNumber);
+            NotfstSentence.push("deleted");
         }
         else if (words.length >= 10) {
+            post = post.replace(/\s+/g," ");
             var sentences = post.split(".");
             firstSentence.push(sentences[0]);
             var i=0;
-            for (i=1; i<sentences.length; i++) {
-                NotfstSentence.push(sentences[i]);
+            console.log(sentences.length +"\n");
+            if (sentences.length <= 1) {
+                NotfstSentence.push("null");
             }
+            else {
+                var count = 0;
+                var substrcontext = " ";
+                for (i=1; i<sentences.length; i++) {
+                    if (sentences[i].length > 1) {
+                         count++;
+                         substrcontext += sentences[i];
+                    }
+                }
+                if (count == 0) {
+                    NotfstSentence.push("null");
+                }
+                else {
+                    NotfstSentence.push(substrcontext);
+                }
+            }
+            console.log(NotfstSentence[lineNumber]);
         }
         lineNumber++;
     });

@@ -58,12 +58,13 @@
             <!-- Display first sentence for preview -->
             <% } else if (index > 0) { %>
                 <p> <%= sentence.split(".")[0] %> </p>
-                <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
-                <div id='<%= idStr %>' class="collapse">
+                <% if (NotfstSentence[index] != "deleted" && NotfstSentence[index] != "null") {%>
+                    <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
+                    <div id='<%= idStr %>' class="collapse">
                     <p> <%= sentence.substring(sentence.indexOf(".") + 1) %> </p>
-                </div>
+                    </div>
+                <% } %>
             <% } %>
-         
         <% }); %>
     </div>
 </body> 
