@@ -31,12 +31,11 @@
     <div class="container">
     <% var i = 1; %>
     <% displayData.sentenceData.forEach(function(post, index) { %>
-        <!-- Display post title -->
+        <!-- Display title post -->
         <% if (index == 0) { %>
             <div class="alert alert-info" role="alert"> 
-                <b><%= post %></b>
+                <b><%= displayData.userData[index] %></b>
             </div>
-        
             <!-- continue to the main content -->
             <% return; %>
         <% } %>
@@ -46,27 +45,24 @@
                 <!-- Mark post number -->
                 <b>#<%= i %></b>
                 <!-- Show username in italics -->
-                <i><%= post.split(" ")[0] %></i>
+                <i><%= displayData.userData[index][0] %></i>
                 <% i++; %>
                 <% 
                     var demoStr = "#demo" + index;
                     var idStr = "demo" + index; 
                 %>
-
-                <!-- Display post title -->
-                <% post = post.substring(post.indexOf(" ") + 1) %>
                 
                 <!-- Hide posts that are too short -->
                 <% if (displayData.hiddenLines.indexOf(index) > -1) { %>
                     <a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a>
 
                     <div id='<%= idStr %>' class="collapse">
-                        <p> <%= post %> </p>
+                        <p> <%= displayData.userData[index][1] %> </p>
                     </div>
                 <!-- Display first sentence for preview -->
                 <% } else if (index > 0) { %>
                     <p> <%= displayData.firstSentence[index] %> </p>
-                    <% if (displayData.notFstSentence[index] != "deleted" && displayData.notFstSentence[index] != null) {%>
+                    <% if (displayData.notFstSentence[index] != "deleted" && displayData.notFstSentence[index] != null) { %>
                         <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
 
                         <!-- Show rest of the content -->

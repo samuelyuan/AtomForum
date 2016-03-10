@@ -145,56 +145,40 @@ var getSentenceData = function(text)
     return sentenceData;
 }
 
-var getUserInfo = function(text) 
+var getUserInfo = function(postData) 
 {
-    var userMap = new Map();
-    var count = 0;
-    var lineNumberProfile = 0;
+    var userData = [];
     
-    //First find the start and end markers for displaying content
-    lineMarkers = getStartEndLines(text);
-    
-    // split data into sentences using a period as a separator
-    text.split("goldreply").forEach(function (sentence) {
-        // throw away extra whitespace and non-alphanumeric characters
-        sentence = sentence.replace(/\s+/g, " ")
-                .replace(/[^a-zA-Z0-9 ]/g, "");
-                                    
-        sentence = cleanSentence(sentence);
-                        
-        lineNumberProfile++;
+    postData.forEach(function(wholePost, index) {
+        //Special case: title post
+        if (index == 0)
+        {
+            userData.push(wholePost);
+            return;
+        }
 
-        var arrayOfstr = sentence.split(" ");
-        //console.log("Array: " + arrayOfstr);
+        var arrayOfstr = wholePost.split(" ");
         var i = 0;
-        while( i != arrayOfstr.length && (arrayOfstr[i] == "deleted" || sentence[i] == "removed" || arrayOfstr[i] == "")) {
+        while( i != arrayOfstr.length && (arrayOfstr[i] == "deleted" || arrayOfstr[i] == "removed" || arrayOfstr[i] == "")) {
             i++;
         }
         var a_user = arrayOfstr[i];
-        //console.log("name: ",a_user);
+        a_user = a_user.replace(/\s+/g, "");
+        a_user = a_user.replace("\[\–\]", "");
         i++;
-        var post = arrayOfstr[i];
-        while (i != arrayOfstr.length) {
-            i++;
-            post = post + " " + arrayOfstr[i];
-        }
-        //console.log("\npost: ",post);
         
-        if (userMap.has(a_user)) {
-            userMap.get(a_user).push(post);
+        var postContent = "";
+        while (i != arrayOfstr.length) {
+            postContent = postContent + " " + arrayOfstr[i];
+            i++;
         }
-        if (!userMap.has(a_user)) {
-            userMap.set(a_user,[]);
-            userMap.get(a_user).push(post);
-                                    
-        }
-        //console.log("\nsize:", userMap.get(a_user).length);
-        //console.log("\n");
+        
+        //Use an array instead of a map
+        //Put username in the first entry, post content in the second
+        userData.push([a_user, postContent]);
     });
     
-    return {
-        userMap: userMap
-    };
+    return userData;
 }
 
 var getSummarizedText = function(sentenceData)
@@ -267,11 +251,12 @@ var getSummarizedText = function(sentenceData)
 exports.getDisplayData = function(text)
 {
     var sentenceData = getSentenceData(text);
-    var userData = getUserInfo(text);
+    var userData = getUserInfo(sentenceData);
     var summaryData = getSummarizedText(sentenceData);
-    
+        
     return {
         sentenceData: sentenceData,
+        userData: userData,
         hiddenLines: summaryData.hiddenLines,
         firstSentence: summaryData.firstSentence,
         notFstSentence: summaryData.notFstSentence
