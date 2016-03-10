@@ -26,17 +26,11 @@ app.get('/results',function(req, res){
         var $page = cheerio.load(body),
             text = $page("body").text();
 
-        //get the data to display        
-        var sentenceData = atomParser.getSentenceData(text);
-        var userData = atomParser.getUserInfo(text);
-        var summaryData = atomParser.getSummarizedText(sentenceData);
+        //get the data to display 
+        var displayData = atomParser.getDisplayData(text);
         
         res.render('results', {
-            sentenceData: sentenceData,
-            newPostLines: userData.newPostLines,
-            hiddenLines: summaryData.hiddenLines,
-            firstSentence: summaryData.firstSentence,
-            notFstSentence: summaryData.notFstSentence,
+            displayData: displayData
         });
     });
 });
