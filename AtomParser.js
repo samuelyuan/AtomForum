@@ -1,3 +1,5 @@
+var Tokenizer = require('sentence-tokenizer');
+
 var isWordInSentence = function(sentence, word)
 {
     return sentence.toLowerCase().indexOf(word) > -1;
@@ -202,7 +204,7 @@ exports.getSummarizedText = function(sentenceData)
 {
     var hiddenLines = [];
     var firstSentence = [];
-    var NotfstSentence = [];
+    var notFstSentence = [];
     var lineNumber = 0;
     sentenceData.forEach(function(post) {
         var words = post.split(" ");
@@ -210,42 +212,57 @@ exports.getSummarizedText = function(sentenceData)
         if (words.length < 10)
         {
             hiddenLines.push(lineNumber);
-            NotfstSentence.push("deleted");
+            notFstSentence.push("deleted");
+            firstSentence.push("");
         }
         else if (words.length >= 10) {
+            //Remove extra whitespace
             post = post.replace(/\s+/g," ");
-            var sentences = post.split(".");
-            firstSentence.push(sentences[0]);
+            
+            //Split post into separate sentences
+            //Use a tokenizer to ensure better results
+            var tokenizer = new Tokenizer('');
+            tokenizer.setEntry(post);
+            var sentences = tokenizer.getSentences();
+            
+            //Save first sentence into one array
+            //Remove username from the post information
+            firstSentence.push(sentences[0].substring(sentences[0].indexOf(" ") + 1));
+            
             var i=0;
-            console.log(sentences.length +"\n");
+            //console.log(sentences.length +"\n");
+            
+            //Get the rest of the post
             if (sentences.length <= 1) {
-                NotfstSentence.push("null");
+                //There's nothing else to show
+                notFstSentence.push(null);
             }
             else {
                 var count = 0;
                 var substrcontext = " ";
-                for (i=1; i<sentences.length; i++) {
+                for (i = 1; i < sentences.length; i++) {
+                    //if it's not an empty space
                     if (sentences[i].length > 1) {
                          count++;
-                         substrcontext += sentences[i];
+                         substrcontext += sentences[i] + " ";
                     }
                 }
                 if (count == 0) {
-                    NotfstSentence.push("null");
+                    //There's nothing else to show
+                    notFstSentence.push(null);
                 }
                 else {
-                    NotfstSentence.push(substrcontext);
+                    //Push the rest of the data
+                    notFstSentence.push(substrcontext);
                 }
             }
-            console.log(NotfstSentence[lineNumber]);
         }
         lineNumber++;
     });
-    
-    
+
     return {
         hiddenLines: hiddenLines,
         firstSentence: firstSentence,
-        NotfstSentence: NotfstSentence
+        notFstSentence: notFstSentence
     };
 }

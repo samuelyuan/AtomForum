@@ -36,7 +36,7 @@ app.get('/results',function(req, res){
             newPostLines: userData.newPostLines,
             hiddenLines: summaryData.hiddenLines,
             firstSentence: summaryData.firstSentence,
-            NotfstSentence: summaryData.NotfstSentence,
+            notFstSentence: summaryData.notFstSentence,
         });
     });
 });

@@ -1,72 +1,85 @@
 <html>
 <head>
-  <title>AtomForum</title>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <title>AtomForum</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
 </head>
 <body>
     <nav class="navbar navbar-inverse navbar-static-top">
-  <div class="container">
-    <a class="navbar-brand" href="/">AtomForum</a>
-    <ul class="nav navbar-nav">
-      <li class="active">
-        <a href="/">Home</a>
-      </li>
-        <li>
-            <!-- Search bar -->
-            <form class="navbar-form" role="search" method="get" id="search-form" name="search-form" action="/results">
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Enter URL" id="url" name="url" value="">
-                    <div class="input-group-btn">
-                        <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
-                    </div>
-                </div>
-            </form>
-        </li>
-    </ul>
-  </div>
-</nav>
-     <div class="container">
-        <% var i = 1; %>
-        <% sentenceData.forEach(function(sentence, index) { %>
-            <!-- Mark post number -->
-            <% if (newPostLines.indexOf(index) > -1) { %>
-                <hr />
-                <b>#<%= i %></b>
-                <i><%= sentence.split(" ")[0] %></i>
-                <% i++; %>
-            <% } %>
-            <% 
-                var demoStr = "#demo" + index;
-                var idStr = "demo" + index; 
-            %>
-         
-            <!-- Display post title -->
-            <% sentence = sentence.substring(sentence.indexOf(" ") + 1) %>
-            <% if (index == 0) { %>
-                <div class="alert alert-info" role="alert"> 
-                    <b><%= sentence %></b>
-                </div>
-            <!-- Hide posts that are too short -->
-            <% } else if (hiddenLines.indexOf(index) > -1) { %>
-                <a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a>
-
-                <div id='<%= idStr %>' class="collapse">
-                    <p> <%= sentence %> </p>
-                </div>
-            <!-- Display first sentence for preview -->
-            <% } else if (index > 0) { %>
-                <p> <%= sentence.split(".")[0] %> </p>
-                <% if (NotfstSentence[index] != "deleted" && NotfstSentence[index] != "null") {%>
-                    <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
-                    <div id='<%= idStr %>' class="collapse">
-                    <p> <%= sentence.substring(sentence.indexOf(".") + 1) %> </p>
-                    </div>
+        <div class="container">
+            <a class="navbar-brand" href="/">AtomForum</a>
+            <ul class="nav navbar-nav">
+                <li class="active">
+                    <a href="/">Home</a>
+                </li>
+                <li>
+                    <!-- Search bar -->
+                    <form class="navbar-form" role="search" method="get" id="search-form" name="search-form" action="/results">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Enter URL" id="url" name="url" value="">
+                            <div class="input-group-btn">
+                                <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
+                            </div>
+                        </div>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+    <% var i = 1; %>
+    <% sentenceData.forEach(function(post, index) { %>
+        <!-- Display post title -->
+        <% if (index == 0) { %>
+            <div class="alert alert-info" role="alert"> 
+                <b><%= post %></b>
+            </div>
+        
+            <!-- continue to the main content -->
+            <% return; %>
+        <% } %>
+        
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <!-- Mark post number -->
+                <% if (newPostLines.indexOf(index) > -1) { %>
+                    <b>#<%= i %></b>
+                    <!-- Show username in italics -->
+                    <i><%= post.split(" ")[0] %></i>
+                    <% i++; %>
                 <% } %>
-            <% } %>
-        <% }); %>
+                <% 
+                    var demoStr = "#demo" + index;
+                    var idStr = "demo" + index; 
+                %>
+
+                <!-- Display post title -->
+                <% post = post.substring(post.indexOf(" ") + 1) %>
+                
+                <!-- Hide posts that are too short -->
+                <% if (hiddenLines.indexOf(index) > -1) { %>
+                    <a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a>
+
+                    <div id='<%= idStr %>' class="collapse">
+                        <p> <%= post %> </p>
+                    </div>
+                <!-- Display first sentence for preview -->
+                <% } else if (index > 0) { %>
+                    <p> <%= firstSentence[index] %> </p>
+                    <% if (notFstSentence[index] != "deleted" && notFstSentence[index] != null) {%>
+                        <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
+
+                        <!-- Show rest of the content -->
+                        <div id='<%= idStr %>' class="collapse">
+                            <p> <%= notFstSentence[index] %> </p>
+                        </div>
+                    <% } %>
+                <% } %>
+            </div>
+        </div>
+    <% }); %>
     </div>
 </body> 
 </html>
