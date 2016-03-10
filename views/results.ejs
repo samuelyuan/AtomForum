@@ -30,7 +30,7 @@
     </nav>
     <div class="container">
     <% var i = 1; %>
-    <% sentenceData.forEach(function(post, index) { %>
+    <% displayData.sentenceData.forEach(function(post, index) { %>
         <!-- Display post title -->
         <% if (index == 0) { %>
             <div class="alert alert-info" role="alert"> 
@@ -44,12 +44,10 @@
         <div class="panel panel-default">
             <div class="panel-body">
                 <!-- Mark post number -->
-                <% if (newPostLines.indexOf(index) > -1) { %>
-                    <b>#<%= i %></b>
-                    <!-- Show username in italics -->
-                    <i><%= post.split(" ")[0] %></i>
-                    <% i++; %>
-                <% } %>
+                <b>#<%= i %></b>
+                <!-- Show username in italics -->
+                <i><%= post.split(" ")[0] %></i>
+                <% i++; %>
                 <% 
                     var demoStr = "#demo" + index;
                     var idStr = "demo" + index; 
@@ -59,7 +57,7 @@
                 <% post = post.substring(post.indexOf(" ") + 1) %>
                 
                 <!-- Hide posts that are too short -->
-                <% if (hiddenLines.indexOf(index) > -1) { %>
+                <% if (displayData.hiddenLines.indexOf(index) > -1) { %>
                     <a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a>
 
                     <div id='<%= idStr %>' class="collapse">
@@ -67,13 +65,13 @@
                     </div>
                 <!-- Display first sentence for preview -->
                 <% } else if (index > 0) { %>
-                    <p> <%= firstSentence[index] %> </p>
-                    <% if (notFstSentence[index] != "deleted" && notFstSentence[index] != null) {%>
+                    <p> <%= displayData.firstSentence[index] %> </p>
+                    <% if (displayData.notFstSentence[index] != "deleted" && displayData.notFstSentence[index] != null) {%>
                         <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
 
                         <!-- Show rest of the content -->
                         <div id='<%= idStr %>' class="collapse">
-                            <p> <%= notFstSentence[index] %> </p>
+                            <p> <%= displayData.notFstSentence[index] %> </p>
                         </div>
                     <% } %>
                 <% } %>

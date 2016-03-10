@@ -98,7 +98,7 @@ var cleanSentence = function(sentence)
     return sentence;
 }
 
-exports.getSentenceData = function(text)
+var getSentenceData = function(text)
 {
     var sentenceData = [];
     var lineNumberProfile = 0;
@@ -145,10 +145,9 @@ exports.getSentenceData = function(text)
     return sentenceData;
 }
 
-exports.getUserInfo = function(text) 
+var getUserInfo = function(text) 
 {
     var userMap = new Map();
-    var newPostLines = []; //separate each user's posts with a line
     var count = 0;
     var lineNumberProfile = 0;
     
@@ -164,7 +163,6 @@ exports.getUserInfo = function(text)
         sentence = cleanSentence(sentence);
                         
         lineNumberProfile++;
-        newPostLines.push(lineNumberProfile);
 
         var arrayOfstr = sentence.split(" ");
         //console.log("Array: " + arrayOfstr);
@@ -195,12 +193,11 @@ exports.getUserInfo = function(text)
     });
     
     return {
-        userMap: userMap,
-        newPostLines: newPostLines
+        userMap: userMap
     };
 }
 
-exports.getSummarizedText = function(sentenceData)
+var getSummarizedText = function(sentenceData)
 {
     var hiddenLines = [];
     var firstSentence = [];
@@ -265,4 +262,18 @@ exports.getSummarizedText = function(sentenceData)
         firstSentence: firstSentence,
         notFstSentence: notFstSentence
     };
+}
+
+exports.getDisplayData = function(text)
+{
+    var sentenceData = getSentenceData(text);
+    var userData = getUserInfo(text);
+    var summaryData = getSummarizedText(sentenceData);
+    
+    return {
+        sentenceData: sentenceData,
+        hiddenLines: summaryData.hiddenLines,
+        firstSentence: summaryData.firstSentence,
+        notFstSentence: summaryData.notFstSentence
+    }
 }
