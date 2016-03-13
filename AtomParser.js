@@ -76,6 +76,7 @@ var cleanSentence = function(sentence)
     
     sentence = sentence.replace(/1 child/g, "");
     sentence = sentence.replace(/[0-9]+ children/g, "");
+    sentence = sentence.replace(/([0-9]+ren)/g, ""); 
     
     sentence = sentence.replace(/[0-9]+ replies/g, "");
     
@@ -90,7 +91,6 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/[0-9]+ commentsshareloadingtop/g, "");
     sentence = sentence.replace(/besttopnewcontroversialoldrandomq&a/g, "");
     sentence = sentence.replace(/top [0-9]+ comments/g, "");
-    //sentence = sentence.replace(/[0-9]+ show orted by/g, "");
     sentence = sentence.replace(/commentsshare/g, "");
     sentence = sentence.replace(/\(\)/g, "");
     sentence = sentence.replace(/\[score hidden\]/g, "");
@@ -152,8 +152,11 @@ var getUserInfo = function(postData)
     postData.forEach(function(wholePost, index) {
         //Special case: title post
         if (index == 0)
-        {
-            userData.push(wholePost);
+        {   
+            //format: [post title] ([link]) submitted by [poster name]
+            postTitle = wholePost.substring(0, wholePost.indexOf(")") + 1);
+
+            userData.push(postTitle);
             return;
         }
 
