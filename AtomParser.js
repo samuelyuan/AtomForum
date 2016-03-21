@@ -184,47 +184,47 @@ var getUserInfo = function(postData)
     return userData;
 }
 
-var getSummarizedText = function(sentenceData)
+var getSummarizedText = function(userData)
 {
-    var hiddenLines = [];
     var firstSentence = [];
     var notFstSentence = [];
-    var lineNumber = 0;
-    sentenceData.forEach(function(post) {
-        var words = post.split(" ");
+    
+    //Use a tokenizer to ensure better results
+    var tokenizer = new Tokenizer('');
+    
+    userData.forEach(function(postArr, lineNumber) {
+        post = postArr[1];
         
-        if (words.length < 10)
+        tokenizer.setEntry(post);
+        var sentences = tokenizer.getSentences();
+        
+        var wordCount = 0;
+        sentences.forEach(function(sent, index) {
+            var tokens = tokenizer.getTokens(index);
+            wordCount += tokens.length;
+        });
+        
+        var MAX_WORDS = 5;
+        if (wordCount < MAX_WORDS)
         {
-            hiddenLines.push(lineNumber);
-            notFstSentence.push("deleted");
-            firstSentence.push("");
+            firstSentence.push(null);
+            notFstSentence.push(null);
         }
-        else if (words.length >= 10) {
+        else if (wordCount >= MAX_WORDS)
+        {
             //Remove extra whitespace
             post = post.replace(/\s+/g," ");
-            
-            //Split post into separate sentences
-            //Use a tokenizer to ensure better results
-            var tokenizer = new Tokenizer('');
-            tokenizer.setEntry(post);
-            var sentences = tokenizer.getSentences();
-            
-            //Save first sentence into one array
-            //Remove username from the post information
-            firstSentence.push(sentences[0].substring(sentences[0].indexOf(" ") + 1));
-            
-            var i=0;
-            //console.log(sentences.length +"\n");
-            
+                    
             //Get the rest of the post
+            var remainingSentences;
             if (sentences.length <= 1) {
                 //There's nothing else to show
-                notFstSentence.push(null);
+                remainingSentences = null;
             }
             else {
                 var count = 0;
                 var substrcontext = " ";
-                for (i = 1; i < sentences.length; i++) {
+                for (var i = 1; i < sentences.length; i++) {
                     //if it's not an empty space
                     if (sentences[i].length > 1) {
                          count++;
@@ -233,19 +233,22 @@ var getSummarizedText = function(sentenceData)
                 }
                 if (count == 0) {
                     //There's nothing else to show
-                    notFstSentence.push(null);
+                    remainingSentences = null;
                 }
                 else {
                     //Push the rest of the data
-                    notFstSentence.push(substrcontext);
+                    remainingSentences = substrcontext;
                 }
             }
+            
+            //Save first sentence into one array
+            firstSentence.push(sentences[0]);
+            //Save the remaining sentences into another array
+            notFstSentence.push(remainingSentences);
         }
-        lineNumber++;
     });
 
     return {
-        hiddenLines: hiddenLines,
         firstSentence: firstSentence,
         notFstSentence: notFstSentence
     };
@@ -255,12 +258,11 @@ exports.getDisplayData = function(text)
 {
     var sentenceData = getSentenceData(text);
     var userData = getUserInfo(sentenceData);
-    var summaryData = getSummarizedText(sentenceData);
+    var summaryData = getSummarizedText(userData);
         
     return {
         sentenceData: sentenceData,
         userData: userData,
-        hiddenLines: summaryData.hiddenLines,
         firstSentence: summaryData.firstSentence,
         notFstSentence: summaryData.notFstSentence
     }
