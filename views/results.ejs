@@ -39,7 +39,7 @@
             <!-- continue to the main content -->
             <% return; %>
         <% } %>
-        
+
         <div class="panel panel-default">
             <div class="panel-body">
                 <!-- Mark post number -->
@@ -51,18 +51,18 @@
                     var demoStr = "#demo" + index;
                     var idStr = "demo" + index; 
                 %>
-                
+
                 <!-- Hide posts that are too short -->
-                <% if (displayData.hiddenLines.indexOf(index) > -1) { %>
+                <% if (displayData.firstSentence[index] == null) { %>
                     <a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a>
 
                     <div id='<%= idStr %>' class="collapse">
                         <p> <%= displayData.userData[index][1] %> </p>
                     </div>
                 <!-- Display first sentence for preview -->
-                <% } else if (index > 0) { %>
+                <% } else { %>
                     <p> <%= displayData.firstSentence[index] %> </p>
-                    <% if (displayData.notFstSentence[index] != "deleted" && displayData.notFstSentence[index] != null) { %>
+                    <% if (displayData.notFstSentence[index] != null) { %>
                         <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
 
                         <!-- Show rest of the content -->
