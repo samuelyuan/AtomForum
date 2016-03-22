@@ -40,6 +40,10 @@
             <% return; %>
         <% } %>
 
+        <% if(displayData.parentIndex.indexOf(index) == -1) { %>
+            <div class="col-md-offset-1">
+        <% } %>
+
         <div class="panel panel-default">
             <div class="panel-body">
                 <!-- Mark post number -->
@@ -73,6 +77,9 @@
                 <% } %>
             </div>
         </div>
+        <% if(displayData.parentIndex.indexOf(index) == -1) { %>
+            </div>
+        <% } %>
     <% }); %>
     </div>
 </body> 
