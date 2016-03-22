@@ -65,7 +65,7 @@ var getStartEndLines = function(text)
 var cleanSentence = function(sentence)
 {
     //remove anything that isn't actually part of the main content
-    sentence = sentence.replace(/permalinksavereportgive/g, "");
+  //  sentence = sentence.replace(/permalinksavereportgive/g, "");
     sentence = sentence.replace(/permalinksaveparentreportgive/g, "");
     
     sentence = sentence.replace(/load more comments/g, "");
@@ -148,7 +148,7 @@ var getSentenceData = function(text)
 var getUserInfo = function(postData) 
 {
     var userData = [];
-    
+    var parentindex = [];
     postData.forEach(function(wholePost, index) {
         //Special case: title post
         if (index == 0)
@@ -172,16 +172,23 @@ var getUserInfo = function(postData)
         
         var postContent = "";
         while (i != arrayOfstr.length) {
+            
+            if (arrayOfstr[i].indexOf("permalinksavereportgive") > -1) {
+                parentindex.push(index);
+                arrayOfstr[i] = arrayOfstr[i].replace(/permalinksavereportgive/g, "");
+              //  console.log(arrayOfstr[i]);
+            }
             postContent = postContent + " " + arrayOfstr[i];
             i++;
         }
-        
         //Use an array instead of a map
         //Put username in the first entry, post content in the second
         userData.push([a_user, postContent]);
     });
-    
-    return userData;
+    return {
+        userData: userData,
+        parentindex:parentindex
+    };
 }
 
 var getSummarizedText = function(userData)
@@ -194,16 +201,16 @@ var getSummarizedText = function(userData)
     
     userData.forEach(function(postArr, lineNumber) {
         post = postArr[1];
-        
-        tokenizer.setEntry(post);
-        var sentences = tokenizer.getSentences();
-        
         var wordCount = 0;
-        sentences.forEach(function(sent, index) {
-            var tokens = tokenizer.getTokens(index);
-            wordCount += tokens.length;
-        });
-        
+        if (/\S/.test(post)) {
+            tokenizer.setEntry(post);
+            var sentences = tokenizer.getSentences();
+            sentences.forEach(function(sent, index) {
+                var tokens = tokenizer.getTokens(index);
+                wordCount += tokens.length;
+            });
+        }
+                     
         var MAX_WORDS = 5;
         if (wordCount < MAX_WORDS)
         {
@@ -258,12 +265,14 @@ exports.getDisplayData = function(text)
 {
     var sentenceData = getSentenceData(text);
     var userData = getUserInfo(sentenceData);
-    var summaryData = getSummarizedText(userData);
+    var summaryData = getSummarizedText(userData.userData);
+    var parentIndex = userData.parentindex;
         
     return {
         sentenceData: sentenceData,
-        userData: userData,
+        userData: userData.userData,
         firstSentence: summaryData.firstSentence,
-        notFstSentence: summaryData.notFstSentence
+        notFstSentence: summaryData.notFstSentence,
+        parentIndex:  userData.parentindex
     }
 }
