@@ -172,11 +172,10 @@ var getUserInfo = function(postData)
         
         var postContent = "";
         while (i != arrayOfstr.length) {
-            
+            //get index of parent post
             if (arrayOfstr[i].indexOf("permalinksavereportgive") > -1) {
                 parentindex.push(index);
                 arrayOfstr[i] = arrayOfstr[i].replace(/permalinksavereportgive/g, "");
-              //  console.log(arrayOfstr[i]);
             }
             postContent = postContent + " " + arrayOfstr[i];
             i++;
@@ -266,7 +265,6 @@ exports.getDisplayData = function(text)
     var sentenceData = getSentenceData(text);
     var userData = getUserInfo(sentenceData);
     var summaryData = getSummarizedText(userData.userData);
-    var parentIndex = userData.parentindex;
         
     return {
         sentenceData: sentenceData,
