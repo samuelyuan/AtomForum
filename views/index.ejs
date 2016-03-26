@@ -2,12 +2,12 @@
 <head>
   <title>AtomForum</title>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+  <link rel="stylesheet" href="https://bootswatch.com/cerulean/bootstrap.css">
+  <link rel="stylesheet" href="https://bootswatch.com/cerulean/bootstrap.min.css">
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-inverse navbar-static-top">
+    <nav class="navbar navbar-default navbar-static-top">
   <div class="container">
     <a class="navbar-brand" href="/">AtomForum</a>
     <ul class="nav navbar-nav">
@@ -18,13 +18,21 @@
   </div>
 </nav>
     <div class="container">
-        <div class="jumbotron"  style="padding:40px;">
-            <h1>Welcome</h1>
-            <p>Take an entire forum thread and reduce it to a summary.</p>
-            <form method="get" action="/results">
-                <input type="text" name="url" placeholder="Enter URL">
-                <input class="btn btn-primary btn-lg"  type="submit" value="Summarize!">
-            </form>
+        <div class="jumbotron">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1>Welcome</h1>
+                    <p>Take an entire forum thread and reduce it to a summary.</p>
+                    <form method="get" action="/results">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="url" placeholder="Enter URL" >
+                            <div class="input-group-btn">
+                                <button class="btn btn-primary"  type="submit">Summarize!</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </body>
