@@ -260,11 +260,33 @@ var getSummarizedText = function(userData)
     };
 }
 
+// sum up all child post for each parent
+var getallchild = function(firstSentence, notFstSentence, parentIndex) {
+    var sumOfchild = [];
+    for (var i=0; i<parentIndex.length -1; i++) {
+        var a_child = " ";
+        for(var j=parentIndex[i]+1; j<parentIndex[i+1];j++){
+            if (firstSentence[j] != null && notFstSentence[j] == null) {
+                a_child += firstSentence[j];
+            }
+            else if (firstSentence[j] != null && notFstSentence[j] != null) {
+                a_child += firstSentence[j];
+                a_child += notFstSentence[j];
+            }
+        }
+        sumOfchild.push(a_child);
+    }
+    console.log(sumOfchild);
+    console.log(sumOfchild.length);
+    return sumOfchild;
+}
+
 exports.getDisplayData = function(text)
 {
     var sentenceData = getSentenceData(text);
     var userData = getUserInfo(sentenceData);
     var summaryData = getSummarizedText(userData.userData);
+    var sumchildpost = getallchild(summaryData.firstSentence, summaryData.notFstSentence, userData.parentindex);
         
     return {
         sentenceData: sentenceData,
