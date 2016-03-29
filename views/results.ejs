@@ -49,7 +49,7 @@
                     var replyIDStr = "reply" + index;
                 %>
                 <!-- Start collapsing from here -->
-                <a data-toggle="collapse" data-target='<%= replyStr %>'>Show Replies</a>
+                <span class="glyphicon glyphicon-comment"></span> <a data-toggle="collapse" data-target='<%= replyStr %>'>Show/Hide Replies</a>
                 <div id='<%= replyIDStr %>' class="collapse">
             <% } %>
         <% } %>
@@ -72,7 +72,7 @@
                 %>
                 <% if (displayData.firstSentence[index] == null) { %>
                     <!-- Hide posts that are too short -->
-                    <a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a>
+                    <i><a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a></i>
 
                     <div id='<%= idStr %>' class="collapse">
                         <p> <%= displayData.userData[index][1] %> </p>
@@ -81,7 +81,7 @@
                      <!-- Display first sentence -->
                     <p> <%= displayData.firstSentence[index] %> </p>
                     <% if (displayData.notFstSentence[index] != null) { %>
-                        <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More</a>
+                        <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More...</a>
 
                         <!-- Show the rest of the content -->
                         <div id='<%= idStr %>' class="collapse">
@@ -100,6 +100,7 @@
             <!-- The current post is a child post and the next post is a parent post -->
             <!-- End collapse here -->
             </div>
+            <hr />
         <% } %>
     <% }); %>
     </div>
