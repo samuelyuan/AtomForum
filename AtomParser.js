@@ -148,7 +148,7 @@ var getSentenceData = function(text)
 var getUserInfo = function(postData) 
 {
     var userData = [];
-    var parentindex = [];
+    var parentIndex = [];
     postData.forEach(function(wholePost, index) {
         //Special case: title post
         if (index == 0)
@@ -174,7 +174,7 @@ var getUserInfo = function(postData)
         while (i != arrayOfstr.length) {
             //get index of parent post
             if (arrayOfstr[i].indexOf("permalinksavereportgive") > -1) {
-                parentindex.push(index);
+                parentIndex.push(index);
                 arrayOfstr[i] = arrayOfstr[i].replace(/permalinksavereportgive/g, "");
             }
             postContent = postContent + " " + arrayOfstr[i];
@@ -186,7 +186,7 @@ var getUserInfo = function(postData)
     });
     return {
         userData: userData,
-        parentindex:parentindex
+        parentIndex: parentIndex
     };
 }
 
@@ -211,6 +211,7 @@ var getSummarizedText = function(userData)
         }
                      
         var MAX_WORDS = 5;
+        //filter out posts that are too short
         if (wordCount < MAX_WORDS)
         {
             firstSentence.push(null);
@@ -219,7 +220,7 @@ var getSummarizedText = function(userData)
         else if (wordCount >= MAX_WORDS)
         {
             //Remove extra whitespace
-            post = post.replace(/\s+/g," ");
+            post = post.replace(/\s+/g, " ");
                     
             //Get the rest of the post
             var remainingSentences;
@@ -229,12 +230,12 @@ var getSummarizedText = function(userData)
             }
             else {
                 var count = 0;
-                var substrcontext = " ";
+                var substrContext = "";
                 for (var i = 1; i < sentences.length; i++) {
                     //if it's not an empty space
                     if (sentences[i].length > 1) {
                          count++;
-                         substrcontext += sentences[i] + " ";
+                         substrContext += sentences[i] + " ";
                     }
                 }
                 if (count == 0) {
@@ -243,7 +244,7 @@ var getSummarizedText = function(userData)
                 }
                 else {
                     //Push the rest of the data
-                    remainingSentences = substrcontext;
+                    remainingSentences = substrContext;
                 }
             }
             
@@ -260,25 +261,27 @@ var getSummarizedText = function(userData)
     };
 }
 
-// sum up all child post for each parent
-var getallchild = function(firstSentence, notFstSentence, parentIndex) {
-    var sumOfchild = [];
-    for (var i=0; i<parentIndex.length -1; i++) {
-        var a_child = " ";
-        for(var j=parentIndex[i]+1; j<parentIndex[i+1];j++){
-            if (firstSentence[j] != null && notFstSentence[j] == null) {
+// sum up all child posts for each parent
+var getAllChildPosts = function(firstSentence, notFstSentence, parentIndex) {
+    var sumOfChildren = [];
+    
+    //Iterate through each parent post index
+    for (var i = 0; i < parentIndex.length - 1; i++) {
+        var a_child = "";
+        
+        //Combine all the children posts for that parent
+        for(var j = parentIndex[i] + 1; j < parentIndex[i + 1]; j++) {
+            if (firstSentence[j] != null) {
                 a_child += firstSentence[j];
-            }
-            else if (firstSentence[j] != null && notFstSentence[j] != null) {
-                a_child += firstSentence[j];
-                a_child += notFstSentence[j];
+                
+                if (notFstSentence[j] != null) {
+                    a_child += notFstSentence[j];
+                }
             }
         }
-        sumOfchild.push(a_child);
+        sumOfChildren.push(a_child);
     }
-    console.log(sumOfchild);
-    console.log(sumOfchild.length);
-    return sumOfchild;
+    return sumOfChildren;
 }
 
 exports.getDisplayData = function(text)
@@ -286,13 +289,13 @@ exports.getDisplayData = function(text)
     var sentenceData = getSentenceData(text);
     var userData = getUserInfo(sentenceData);
     var summaryData = getSummarizedText(userData.userData);
-    var sumchildpost = getallchild(summaryData.firstSentence, summaryData.notFstSentence, userData.parentindex);
+    var sumChildPosts = getAllChildPosts(summaryData.firstSentence, summaryData.notFstSentence, userData.parentIndex);
         
     return {
         sentenceData: sentenceData,
         userData: userData.userData,
         firstSentence: summaryData.firstSentence,
         notFstSentence: summaryData.notFstSentence,
-        parentIndex:  userData.parentindex
+        parentIndex:  userData.parentIndex
     }
 }
