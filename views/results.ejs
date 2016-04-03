@@ -30,14 +30,14 @@
     </nav>
     <div class="container">
     <% var i = 1; %>
-    <% displayData.sentenceData.forEach(function(post, index) { %>
+    <% for (var index = 0; index < displayData.sentenceData.length; index++) { %>
+        <% var post = displayData.sentenceData[index]; %>
         <% if (index == 0) { %>
             <!-- Display title post -->
             <div class="alert alert-info" role="alert"> 
                 <b><%= displayData.userData[index] %></b>
             </div>
-            <!-- continue to the main content -->
-            <% return; %>
+            <% continue; %>
         <% } %>
 
         <% if (displayData.parentIndex.indexOf(index - 1) > -1) { %>
@@ -47,18 +47,53 @@
                 <%
                     var replyStr = "#reply" + index;
                     var replyIDStr = "reply" + index;
+                    
+                    var originalIDStr = "originial" + index;
+                    var originalStr = "#" + originalIDStr;
+                    
                 %>
                 <!-- Start collapsing from here -->
                 <span class="glyphicon glyphicon-comment"></span> <a data-toggle="collapse" data-target='<%= replyStr %>'>Show/Hide Replies</a>
                 <div id='<%= replyIDStr %>' class="collapse">
+                    
+                <div class="col-md-offset-1">
+                    <% 
+                        var posInArray = displayData.parentIndex.indexOf(index - 1);                               
+                        if (posInArray < displayData.parentIndex.length - 1)
+                        {
+                            var newIndex = displayData.parentIndex[posInArray + 1] - 1; 
+                            index = newIndex;
+                        }
+                        
+                        if (displayData.summaryArr[posInArray] == null) { continue; }                                 
+                    %>
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <i>Auto-Summary</i>
+                            <hr />
+                            <% displayData.summaryArr[posInArray].forEach(function(line) { %>
+                                <p> <%= line %> </p>
+                            <% }); %>
+                            <hr />
+                            
+                            <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
+                            <div id='<%= originalIDStr %>' class="collapse">
+                            <div class="panel-body">   
+                                <% displayData.sumChildPosts[posInArray].forEach(function(line) { %>
+                                    <p> <%= line %> </p>
+                                <% }); %>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+                    
+                </div>
+                <hr />
+                <% continue; %>
             <% } %>
         <% } %>
-        
-        <% if (displayData.parentIndex.indexOf(index) == -1) { %>
-            <!-- Shift child posts to the right -->        
-            <div class="col-md-offset-1">
-        <% } %>
-                
+
         <div class="panel panel-default">
             <div class="panel-body">
                 <!-- Mark post number -->
@@ -91,18 +126,7 @@
                 <% } %>
             </div>
         </div>
-                
-        <% if(displayData.parentIndex.indexOf(index) == -1) { %>
-            </div>
-        <% } %>
-                
-        <% if (displayData.parentIndex.indexOf(index) == -1 && displayData.parentIndex.indexOf(index + 1) > -1) { %>
-            <!-- The current post is a child post and the next post is a parent post -->
-            <!-- End collapse here -->
-            </div>
-            <hr />
-        <% } %>
-    <% }); %>
+    <% } %>
     </div>
 </body> 
 </html>

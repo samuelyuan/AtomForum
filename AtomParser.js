@@ -1,4 +1,5 @@
 var Tokenizer = require('sentence-tokenizer');
+var SummaryTool = require('node-summary');
 
 var isWordInSentence = function(sentence, word)
 {
@@ -85,6 +86,8 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/[0-9]+ hours ago/g, "");
     sentence = sentence.replace(/[0-9]+ minutes ago/g, "");
     sentence = sentence.replace(/[0-9]+ days ago/g, "");
+    sentence = sentence.replace(/1 month ago/g, "");
+    sentence = sentence.replace(/[0-9]+ months ago/g, "");
     
     sentence = sentence.replace(/[0-9]+ replydeleted removed/g, "");
     sentence = sentence.replace(/[0-9]+ reply/g, "");
@@ -275,14 +278,79 @@ var getAllChildPosts = function(firstSentence, notFstSentence, parentIndex) {
                 a_child += firstSentence[j];
                 
                 if (notFstSentence[j] != null) {
-                    a_child += notFstSentence[j];
+                    a_child += " " + notFstSentence[j];
                 }
             }
         }
+        
         sumOfChildren.push(a_child);
     }
+    
     return sumOfChildren;
 }
+
+var getSummaryReplies = function(sumChildPosts)
+{
+    var originalArr = []
+    var summaryArr = [];
+    
+    sumChildPosts.forEach(function(reply) {
+        var title = '';
+        var content = reply;
+                
+        //split into sentences
+        var tokenizer = new Tokenizer('');
+        var sentences = [];
+        tokenizer.setEntry(reply);
+        if (/\S/.test(reply)) {
+            sentences = tokenizer.getSentences();
+        }
+        originalArr.push(sentences);
+        
+        //nothing to summarize
+        if (sentences.length == 0)
+        {
+            summaryArr.push([]);
+        }
+        //not really able to summarize
+        else if (sentences.length <= 2)
+        {
+            summaryArr.push(sentences);
+        }
+        //get summary of replies
+        else
+        {
+            var lengthSummary = 0;
+            if (sentences.length < 5)
+            {
+                lengthSummary = sentences.length;
+            }
+            else
+            {
+                lengthSummary = 5;
+            }
+            
+            SummaryTool.getSortedSentences(content, lengthSummary, function(err, sorted_sentences) {
+                if(err) {
+                    console.log("There was an error."); 
+                }
+
+                var sortedArr = [];
+                for (var index in sorted_sentences)
+                {
+                    sortedArr.push(sorted_sentences[index]);
+                }
+                summaryArr.push(sortedArr);
+            });
+        }
+    });
+    
+    return {
+        originalArr: originalArr,
+        summaryArr: summaryArr
+    };
+}
+
 
 exports.getDisplayData = function(text)
 {
@@ -290,12 +358,15 @@ exports.getDisplayData = function(text)
     var userData = getUserInfo(sentenceData);
     var summaryData = getSummarizedText(userData.userData);
     var sumChildPosts = getAllChildPosts(summaryData.firstSentence, summaryData.notFstSentence, userData.parentIndex);
-        
+    var summaryArr = getSummaryReplies(sumChildPosts);
+    
     return {
         sentenceData: sentenceData,
         userData: userData.userData,
         firstSentence: summaryData.firstSentence,
         notFstSentence: summaryData.notFstSentence,
-        parentIndex:  userData.parentIndex
+        parentIndex: userData.parentIndex,
+        sumChildPosts: summaryArr.originalArr,
+        summaryArr: summaryArr.summaryArr
     }
 }
