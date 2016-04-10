@@ -50,44 +50,44 @@
                     
                     var originalIDStr = "originial" + index;
                     var originalStr = "#" + originalIDStr;
-                    
                 %>
-                <!-- Start collapsing from here -->
+                <% 
+                    var posInArray = displayData.parentIndex.indexOf(index - 1);                               
+                    if (posInArray < displayData.parentIndex.length - 1)
+                    {
+                        var newIndex = displayData.parentIndex[posInArray + 1] - 1; 
+                        index = newIndex;
+                    }
+
+                    if (displayData.summaryArr[posInArray] == null) { continue; }
+                    if (displayData.summaryArr[posInArray].length == 0) { continue; }  
+                %>
+
+                <!-- Start collapsing all replies from here -->
                 <span class="glyphicon glyphicon-comment"></span> <a data-toggle="collapse" data-target='<%= replyStr %>'>Show/Hide Replies</a>
                 <div id='<%= replyIDStr %>' class="collapse">
-                    
-                <div class="col-md-offset-1">
-                    <% 
-                        var posInArray = displayData.parentIndex.indexOf(index - 1);                               
-                        if (posInArray < displayData.parentIndex.length - 1)
-                        {
-                            var newIndex = displayData.parentIndex[posInArray + 1] - 1; 
-                            index = newIndex;
-                        }
-                        
-                        if (displayData.summaryArr[posInArray] == null) { continue; }                                 
-                    %>
-                    <div class="panel panel-default">
-                        <div class="panel-body">
-                            <i>Auto-Summary</i>
-                            <hr />
-                            <% displayData.summaryArr[posInArray].forEach(function(line) { %>
-                                <p> <%= line %> </p>
-                            <% }); %>
-                            <hr />
-                            
-                            <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
-                            <div id='<%= originalIDStr %>' class="collapse">
-                            <div class="panel-body">   
-                                <% displayData.sumChildPosts[posInArray].forEach(function(line) { %>
+                    <div class="col-md-offset-1">
+                        <div class="panel panel-default">
+                            <div class="panel-body">
+                                <i>Auto-Summary</i>
+                                <hr />
+                                <% displayData.summaryArr[posInArray].forEach(function(line) { %>
                                     <p> <%= line %> </p>
                                 <% }); %>
+                                <hr />
+
+                                <!-- Collapse original replies here -->
+                                <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
+                                <div id='<%= originalIDStr %>' class="collapse">
+                                    <div class="panel-body">   
+                                        <% displayData.sumChildPosts[posInArray].forEach(function(line) { %>
+                                            <p> <%= line %> </p>
+                                        <% }); %>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        </div>
                     </div>
-                </div>
-                    
                 </div>
                 <hr />
                 <% continue; %>

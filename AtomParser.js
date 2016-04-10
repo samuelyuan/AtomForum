@@ -68,10 +68,7 @@ var cleanSentence = function(sentence)
     //remove anything that isn't actually part of the main content
   //  sentence = sentence.replace(/permalinksavereportgive/g, "");
     sentence = sentence.replace(/permalinksaveparentreportgive/g, "");
-    
-    sentence = sentence.replace(/load more comments/g, "");
-    sentence = sentence.replace(/continue this thread/g, "");
-    
+
     sentence = sentence.replace(/1 point/g, "");
     sentence = sentence.replace(/[0-9]+ points/g, "");
     
@@ -82,21 +79,28 @@ var cleanSentence = function(sentence)
     sentence = sentence.replace(/[0-9]+ replies/g, "");
     
     sentence = sentence.replace(/[0-9]+s/g, "");
+    sentence = sentence.replace(/[0-9]+ minutes ago/g, "");
     sentence = sentence.replace(/1 hour ago/g, "");
     sentence = sentence.replace(/[0-9]+ hours ago/g, "");
-    sentence = sentence.replace(/[0-9]+ minutes ago/g, "");
+    sentence = sentence.replace(/1 day ago/g, "");
     sentence = sentence.replace(/[0-9]+ days ago/g, "");
     sentence = sentence.replace(/1 month ago/g, "");
     sentence = sentence.replace(/[0-9]+ months ago/g, "");
     
+    sentence = sentence.replace(/top [0-9]+ comments/g, "");
+    sentence = sentence.replace(/commentsshare/g, "");
+    sentence = sentence.replace(/load more comments/g, "");
+    sentence = sentence.replace(/continue this thread/g, "");
+    
     sentence = sentence.replace(/[0-9]+ replydeleted removed/g, "");
     sentence = sentence.replace(/[0-9]+ reply/g, "");
     sentence = sentence.replace(/[0-9]+ commentsshareloadingtop/g, "");
+    
     sentence = sentence.replace(/besttopnewcontroversialoldrandomq&a/g, "");
-    sentence = sentence.replace(/top [0-9]+ comments/g, "");
-    sentence = sentence.replace(/commentsshare/g, "");
+    
     sentence = sentence.replace(/\(\)/g, "");
     sentence = sentence.replace(/\[score hidden\]/g, "");
+    sentence = sentence.replace(/comment score below threshold/g, "");
     
     return sentence;
 }
@@ -109,12 +113,8 @@ var getSentenceData = function(text)
     //First find the start and end markers for displaying content
     lineMarkers = getStartEndLines(text);
     
-    // split data into sentences using a period as a separator
-    text.split("goldreply").forEach(function (sentence) {
-        // throw away extra whitespace and non-alphanumeric characters
-        //sentence = sentence.replace(/\s+/g, " ")
-        //       .replace(/[^a-zA-Z0-9 ]/g, "");
-                        
+    //Split the data into individual posts
+    text.split("goldreply").forEach(function(sentence) {
         sentence = cleanSentence(sentence);
         lineNumberProfile++;
 
@@ -126,12 +126,12 @@ var getSentenceData = function(text)
             {
                 //remove extra information before the start marker
                 sentence = sentence.substring(sentence.indexOf("2ex; padding-right: 5px; }"));
-                
                 //remove the start marker 
                 sentence = sentence.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
                 
+                //Element 0 is the title
+                //Element 1 is the first post
                 sentenceArr = sentence.split("\[\–\]");
-                
                 sentenceData.push(sentenceArr[0]);
                 sentenceData.push(sentenceArr[1]);
             }
@@ -281,12 +281,34 @@ var getAllChildPosts = function(firstSentence, notFstSentence, parentIndex) {
                     a_child += " " + notFstSentence[j];
                 }
             }
+            
+            a_child += "\n";
         }
         
         sumOfChildren.push(a_child);
     }
     
     return sumOfChildren;
+}
+
+
+//Helper wrapper function to summarize a block of text
+var summarizeText = function(content, numSentences)
+{
+    var sortedArr = [];
+    SummaryTool.getSortedSentences(content, numSentences, function(err, sorted_sentences) {
+        if(err) {
+            console.log("There was an error."); 
+            return [];
+        }
+
+        for (var index in sorted_sentences)
+        {
+            sortedArr.push(sorted_sentences[index]);
+        }
+    });
+    
+    return sortedArr;
 }
 
 var getSummaryReplies = function(sumChildPosts)
@@ -296,14 +318,21 @@ var getSummaryReplies = function(sumChildPosts)
     
     sumChildPosts.forEach(function(reply) {
         var title = '';
-        var content = reply;
-                
-        //split into sentences
+        var content = '';
+    
+        //Split the original reply into separate sentences
         var tokenizer = new Tokenizer('');
         var sentences = [];
         tokenizer.setEntry(reply);
         if (/\S/.test(reply)) {
-            sentences = tokenizer.getSentences();
+            //sentences = tokenizer.getSentences();
+            sentences = reply.split("\n");
+            
+            //build content string by separating reply posts with a newline
+            for (var index in sentences)
+            {
+                content += sentences[index] + "\n";
+            }
         }
         originalArr.push(sentences);
         
@@ -330,18 +359,7 @@ var getSummaryReplies = function(sumChildPosts)
                 lengthSummary = 5;
             }
             
-            SummaryTool.getSortedSentences(content, lengthSummary, function(err, sorted_sentences) {
-                if(err) {
-                    console.log("There was an error."); 
-                }
-
-                var sortedArr = [];
-                for (var index in sorted_sentences)
-                {
-                    sortedArr.push(sorted_sentences[index]);
-                }
-                summaryArr.push(sortedArr);
-            });
+            summaryArr.push(summarizeText(content, lengthSummary));
         }
     });
     
