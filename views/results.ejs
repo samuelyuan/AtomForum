@@ -29,86 +29,30 @@
         </div>
     </nav>
     <div class="container">
-    <% var i = 1; %>
-    <% for (var index = 0; index < displayData.sentenceData.length; index++) { %>
-        <% var post = displayData.sentenceData[index]; %>
-        <% if (index == 0) { %>
-            <!-- Display title post -->
-            <div class="alert alert-info" role="alert"> 
-                <b><%= displayData.userData[index] %></b>
-            </div>
-            <% continue; %>
-        <% } %>
-
-        <% if (displayData.parentIndex.indexOf(index - 1) > -1) { %>
-            <!-- The previous post is a parent post -->
-            <% if (displayData.parentIndex.indexOf(index) == -1) { %>
-                <!-- The current post is a child --> 
-                <%
-                    var replyStr = "#reply" + index;
-                    var replyIDStr = "reply" + index;
-                    
-                    var originalIDStr = "originial" + index;
-                    var originalStr = "#" + originalIDStr;
-                %>
-                <% 
-                    var posInArray = displayData.parentIndex.indexOf(index - 1);                               
-                    if (posInArray < displayData.parentIndex.length - 1)
-                    {
-                        var newIndex = displayData.parentIndex[posInArray + 1] - 1; 
-                        index = newIndex;
-                    }
-
-                    if (displayData.summaryArr[posInArray] == null) { continue; }
-                    if (displayData.summaryArr[posInArray].length == 0) { continue; }  
-                %>
-
-                <!-- Start collapsing all replies from here -->
-                <span class="glyphicon glyphicon-comment"></span> <a data-toggle="collapse" data-target='<%= replyStr %>'>Show/Hide Replies</a>
-                <div id='<%= replyIDStr %>' class="collapse">
-                    <div class="col-md-offset-1">
-                        <div class="panel panel-default">
-                            <div class="panel-body">
-                                <i>Auto-Summary</i>
-                                <hr />
-                                <% displayData.summaryArr[posInArray].forEach(function(line) { %>
-                                    <p> <%= line %> </p>
-                                <% }); %>
-                                <hr />
-
-                                <!-- Collapse original replies here -->
-                                <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
-                                <div id='<%= originalIDStr %>' class="collapse">
-                                    <div class="panel-body">   
-                                        <% displayData.sumChildPosts[posInArray].forEach(function(line) { %>
-                                            <p> <%= line %> </p>
-                                        <% }); %>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <hr />
-                <% continue; %>
-            <% } %>
-        <% } %>
-
-        <%
-        if (displayData.NewparentIndex[displayData.parentIndex.indexOf(index)] == -1) {
-            var posInArray = displayData.parentIndex.indexOf(index);
-            index = displayData.parentIndex[posInArray + 1] - 1;
-            continue;
-        }
+        <!-- Display title post -->
+        <div class="alert alert-info" role="alert"> 
+            <b><%= displayData.userData[0] %></b>
+        </div>
+        
+        <%  var numPost = 1; %> 
+        <%  for (var i = 0; i < displayData.parentIndex.length; i++) { 
+         
+            var index = displayData.parentIndex[i]; 
+            var post = displayData.sentenceData[index]; 
+        
+            //skip if no replies
+            if (displayData.newParentIndex[i] == -1) {
+                continue;
+            }
         %>
-
+        
         <div class="panel panel-default">
             <div class="panel-body">
                 <!-- Mark post number -->
-                <b>#<%= i %></b>
+                <b>#<%= numPost %></b>
                 <!-- Show username in italics -->
                 <i><%= displayData.userData[index][0] %></i>
-                <% i++; %>
+                <% numPost++; %>
                 <% 
                     var demoStr = "#demo" + index;
                     var idStr = "demo" + index; 
@@ -134,6 +78,47 @@
                 <% } %>
             </div>
         </div>
+        
+        <!-- The current post is a child --> 
+        <%
+            var replyStr = "#reply" + index;
+            var replyIDStr = "reply" + index;
+
+            var originalIDStr = "originial" + index;
+            var originalStr = "#" + originalIDStr;
+        %>
+        <% 
+            if (displayData.summaryArr[i] == null) { continue; }
+            if (displayData.summaryArr[i].length == 0) { continue; }  
+        %>
+
+        <!-- Start collapsing all replies from here -->
+        <span class="glyphicon glyphicon-comment"></span> <a data-toggle="collapse" data-target='<%= replyStr %>'>Show/Hide Replies</a>
+        <div id='<%= replyIDStr %>' class="collapse">
+            <div class="col-md-offset-1">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <i>Auto-Summary</i>
+                        <hr />
+                        <% displayData.summaryArr[i].forEach(function(line) { %>
+                            <p> <%= line %> </p>
+                        <% }); %>
+                        <hr />
+
+                        <!-- Collapse original replies here -->
+                        <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
+                        <div id='<%= originalIDStr %>' class="collapse">
+                            <div class="panel-body">   
+                                <% displayData.sumChildPosts[i].forEach(function(line) { %>
+                                    <p> <%= line %> </p>
+                                <% }); %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr />
     <% } %>
     </div>
 </body> 

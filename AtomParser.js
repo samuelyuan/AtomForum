@@ -98,6 +98,9 @@ var cleanSentence = function(sentence)
     
     sentence = sentence.replace(/besttopnewcontroversialoldrandomq&a/g, "");
     
+    sentence = sentence.replace(/\[\+\]/g, "");
+    sentence = sentence.replace(/\[deleted\]/g, "");
+    sentence = sentence.replace(/\[removed\]/g, "");
     sentence = sentence.replace(/\(\)/g, "");
     sentence = sentence.replace(/\[score hidden\]/g, "");
     sentence = sentence.replace(/comment score below threshold/g, "");
@@ -350,24 +353,26 @@ var getSummaryReplies = function(sumChildPosts)
         else
         {
             var lengthSummary = 0;
+            var newSummary = '';
             if (sentences.length < 5)
             {
                 lengthSummary = sentences.length;
+                newSummary = summarizeText(content, lengthSummary);
             }
             else
             {
                 lengthSummary = sentences.length / 2;
+                oldSummary = summarizeText(content, lengthSummary);
+                var newStr = '';
+                for (var index in oldSummary)
+                {
+                    newStr += oldSummary[index] + "\n";
+                }
+                newSummary = summarizeText(newStr, lengthSummary / 2);
+                
             }
             
-            oldSummary = summarizeText(content, lengthSummary);
-            
-            var newStr = '';
-            for (var index in oldSummary)
-            {
-                newStr += oldSummary[index] + "\n";
-            }
-            
-            summaryArr.push(summarizeText(newStr, lengthSummary / 2));
+            summaryArr.push(newSummary);
         }
     });
     
@@ -377,25 +382,25 @@ var getSummaryReplies = function(sumChildPosts)
     };
 }
 
-var SortImportantParents = function(summaryArr,parentIndex) {
-    var NewparentIndex = [];
+var sortImportantParents = function(summaryArr, parentIndex) {
+    var newParentIndex = [];
     var i;
     for(i=0; i<parentIndex.length-1; i++) {
         var j = i+1;
-        if (parentIndex[i] +1 == parentIndex[j]) { // No children
-            NewparentIndex.push(-1);
+        if (parentIndex[i] + 1 == parentIndex[j]) { // No children
+            newParentIndex.push(-1);
         }
         else if (summaryArr[i].length == 0) { // No child left after summarization
-            NewparentIndex.push(-1);
+            newParentIndex.push(-1);
         }
-        else { // Got child before and after summarization
-            NewparentIndex.push(parentIndex[i]);
+        else { // Get child before and after summarization
+            newParentIndex.push(parentIndex[i]);
         }
     }
-    // Check the last index in ParentIndex
-    NewparentIndex.push(-1);
+    // Check the last index in parentIndex
+    newParentIndex.push(-1);
     
-    return NewparentIndex;
+    return newParentIndex;
 }
 
 
@@ -405,8 +410,8 @@ exports.getDisplayData = function(text)
     var userData = getUserInfo(sentenceData);
     var summaryData = getSummarizedText(userData.userData);
     var sumChildPosts = getAllChildPosts(summaryData.firstSentence, summaryData.notFstSentence, userData.parentIndex);
-    var summaryArr = getSummaryReplies(sumChildPosts);
-    var NewparentIndex = SortImportantParents(summaryArr.summaryArr,userData.parentIndex);
+    var summaryReplies = getSummaryReplies(sumChildPosts);
+    var newParentIndex = sortImportantParents(summaryReplies.summaryArr, userData.parentIndex);
     
     return {
         sentenceData: sentenceData,
@@ -414,8 +419,8 @@ exports.getDisplayData = function(text)
         firstSentence: summaryData.firstSentence,
         notFstSentence: summaryData.notFstSentence,
         parentIndex: userData.parentIndex,
-        sumChildPosts: summaryArr.originalArr,
-        summaryArr: summaryArr.summaryArr,
-        NewparentIndex: NewparentIndex
+        sumChildPosts: summaryReplies.originalArr,
+        summaryArr: summaryReplies.summaryArr,
+        newParentIndex: newParentIndex
     }
 }
