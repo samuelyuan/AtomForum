@@ -46,6 +46,7 @@
             }
         %>
         
+        <!-- Parent post -->
         <div class="panel panel-default">
             <div class="panel-body">
                 <!-- Mark post number -->
@@ -58,12 +59,8 @@
                     var idStr = "demo" + index; 
                 %>
                 <% if (displayData.firstSentence[index] == null) { %>
-                    <!-- Hide posts that are too short -->
-                    <i><a data-toggle="collapse" data-target='<%= demoStr %>'>Show Hidden</a></i>
-
-                    <div id='<%= idStr %>' class="collapse">
-                        <p> <%= displayData.userData[index][1] %> </p>
-                    </div>
+                    <!-- Show all of the content -->
+                    <p> <%= displayData.userData[index][1] %> </p>
                 <% } else { %>
                      <!-- Display first sentence -->
                     <p> <%= displayData.firstSentence[index] %> </p>
@@ -79,7 +76,7 @@
             </div>
         </div>
         
-        <!-- The current post is a child --> 
+        <!-- Child post --> 
         <%
             var replyStr = "#reply" + index;
             var replyIDStr = "reply" + index;

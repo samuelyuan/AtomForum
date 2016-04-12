@@ -314,6 +314,22 @@ var summarizeText = function(content, numSentences)
     return sortedArr;
 }
 
+//Calculate how effective the summary is
+//Higher summary ratio is better
+var getSummaryRatio = function(content, newSummaryArr)
+{
+    var summaryLength = 0;
+    for (var index in newSummaryArr)
+    {
+        summaryLength += newSummaryArr[index].length;
+    }
+                
+    console.log("Original Content length: " + content.length);
+    console.log("Summary length: " + summaryLength);
+    console.log("Summary Ratio: " + (100 - (100 * (summaryLength / content.length))) + "%");
+    console.log();
+}
+
 var getSummaryReplies = function(sumChildPosts)
 {
     var originalArr = []
@@ -330,7 +346,7 @@ var getSummaryReplies = function(sumChildPosts)
         if (/\S/.test(reply)) {
             //sentences = tokenizer.getSentences();
             sentences = reply.split("\n");
-            
+
             //build content string by separating reply posts with a newline
             for (var index in sentences)
             {
@@ -344,35 +360,35 @@ var getSummaryReplies = function(sumChildPosts)
         {
             summaryArr.push([]);
         }
-        //not really able to summarize
-        else if (sentences.length <= 2)
-        {
-            summaryArr.push(sentences);
-        }
-        //get summary of replies
         else
         {
-            var lengthSummary = 0;
-            var newSummary = '';
-            if (sentences.length < 5)
+            //no need to summarize if under 250 chars
+            if (content.length < 250)
             {
-                lengthSummary = sentences.length;
-                newSummary = summarizeText(content, lengthSummary);
+                summaryArr.push(sentences);
             }
             else
             {
-                lengthSummary = sentences.length / 2;
-                oldSummary = summarizeText(content, lengthSummary);
-                var newStr = '';
-                for (var index in oldSummary)
-                {
-                    newStr += oldSummary[index] + "\n";
-                }
-                newSummary = summarizeText(newStr, lengthSummary / 2);
+                var lengthSummary = sentences.length;
                 
+                var newSummary = '';
+                var newStr = content;
+                
+                //summarize the content into a half each time until it is short enough
+                do {
+                    lengthSummary /= 2;
+                    newSummary = summarizeText(newStr, lengthSummary);
+                    
+                    newStr = '';
+                    for (var index in newSummary)
+                    {
+                        newStr += newSummary[index] + "\n";
+                    }
+                } while (lengthSummary > 10);
+                
+                summaryArr.push(newSummary);
+                getSummaryRatio(content, newSummary);
             }
-            
-            summaryArr.push(newSummary);
         }
     });
     
