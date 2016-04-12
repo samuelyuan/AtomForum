@@ -356,10 +356,18 @@ var getSummaryReplies = function(sumChildPosts)
             }
             else
             {
-                lengthSummary = 5;
+                lengthSummary = sentences.length / 2;
             }
             
-            summaryArr.push(summarizeText(content, lengthSummary));
+            oldSummary = summarizeText(content, lengthSummary);
+            
+            var newStr = '';
+            for (var index in oldSummary)
+            {
+                newStr += oldSummary[index] + "\n";
+            }
+            
+            summaryArr.push(summarizeText(newStr, lengthSummary / 2));
         }
     });
     
