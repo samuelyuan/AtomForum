@@ -377,6 +377,27 @@ var getSummaryReplies = function(sumChildPosts)
     };
 }
 
+var SortImportantParents = function(summaryArr,parentIndex) {
+    var NewparentIndex = [];
+    var i;
+    for(i=0; i<parentIndex.length-1; i++) {
+        var j = i+1;
+        if (parentIndex[i] +1 == parentIndex[j]) { // No children
+            NewparentIndex.push(-1);
+        }
+        else if (summaryArr[i].length == 0) { // No child left after summarization
+            NewparentIndex.push(-1);
+        }
+        else { // Got child before and after summarization
+            NewparentIndex.push(parentIndex[i]);
+        }
+    }
+    // Check the last index in ParentIndex
+    NewparentIndex.push(-1);
+    
+    return NewparentIndex;
+}
+
 
 exports.getDisplayData = function(text)
 {
@@ -385,6 +406,7 @@ exports.getDisplayData = function(text)
     var summaryData = getSummarizedText(userData.userData);
     var sumChildPosts = getAllChildPosts(summaryData.firstSentence, summaryData.notFstSentence, userData.parentIndex);
     var summaryArr = getSummaryReplies(sumChildPosts);
+    var NewparentIndex = SortImportantParents(summaryArr.summaryArr,userData.parentIndex);
     
     return {
         sentenceData: sentenceData,
@@ -393,6 +415,7 @@ exports.getDisplayData = function(text)
         notFstSentence: summaryData.notFstSentence,
         parentIndex: userData.parentIndex,
         sumChildPosts: summaryArr.originalArr,
-        summaryArr: summaryArr.summaryArr
+        summaryArr: summaryArr.summaryArr,
+        NewparentIndex: NewparentIndex
     }
 }

@@ -94,6 +94,14 @@
             <% } %>
         <% } %>
 
+        <%
+        if (displayData.NewparentIndex[displayData.parentIndex.indexOf(index)] == -1) {
+            var posInArray = displayData.parentIndex.indexOf(index);
+            index = displayData.parentIndex[posInArray + 1] - 1;
+            continue;
+        }
+        %>
+
         <div class="panel panel-default">
             <div class="panel-body">
                 <!-- Mark post number -->
