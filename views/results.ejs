@@ -2,8 +2,8 @@
 <head>
     <title>AtomForum</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-    <link rel="stylesheet" href="https://bootswatch.com/cerulean/bootstrap.css">
-    <link rel="stylesheet" href="https://bootswatch.com/cerulean/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
 </head>
 <body>
@@ -15,15 +15,16 @@
                     <a href="/">Home</a>
                 </li>
                 <li>
-                    <!-- Search bar -->
-                    <form class="navbar-form" role="search" method="get" id="search-form" name="search-form" action="/results">
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Enter URL" id="url" name="url" value="">
-                            <div class="input-group-btn">
-                                <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
-                            </div>
+                    
+                <!-- Search bar -->
+                <form class="navbar-form" role="search" method="get" id="search-form" name="search-form" action="/results">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Enter URL" id="url" name="url" value="">
+                        <div class="input-group-btn">
+                            <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
                         </div>
-                    </form>
+                    </div>
+                </form>
                 </li>
             </ul>
         </div>
@@ -48,12 +49,14 @@
         
         <!-- Parent post -->
         <div class="panel panel-default">
-            <div class="panel-body">
+            <div class="panel-heading">
                 <!-- Mark post number -->
                 <b>#<%= numPost %></b>
+                <% numPost++; %>
                 <!-- Show username in italics -->
                 <i><%= displayData.userData[index][0] %></i>
-                <% numPost++; %>
+            </div>
+            <div class="panel-body">
                 <% 
                     var demoStr = "#demo" + index;
                     var idStr = "demo" + index; 
@@ -94,9 +97,10 @@
         <div id='<%= replyIDStr %>' class="collapse">
             <div class="col-md-offset-1">
                 <div class="panel panel-default">
-                    <div class="panel-body">
+                    <div class="panel-heading">
                         <i>Auto-Summary</i>
-                        <hr />
+                    </div>
+                    <div class="panel-body">
                         <% displayData.summaryArr[i].forEach(function(line) { %>
                             <p> <%= line %> </p>
                         <% }); %>
