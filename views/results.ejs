@@ -15,7 +15,7 @@
                     <a href="/">Home</a>
                 </li>
                 <li>
-                    
+
                 <!-- Search bar -->
                 <form class="navbar-form" role="search" method="get" id="search-form" name="search-form" action="/results">
                     <div class="input-group">
@@ -31,22 +31,22 @@
     </nav>
     <div class="container">
         <!-- Display title post -->
-        <div class="alert alert-info" role="alert"> 
+        <div class="alert alert-info" role="alert">
             <b><%= displayData.userData[0] %></b>
         </div>
-        
-        <%  var numPost = 1; %> 
-        <%  for (var i = 0; i < displayData.parentIndex.length; i++) { 
-         
-            var index = displayData.parentIndex[i]; 
-            var post = displayData.sentenceData[index]; 
-        
+
+        <%  var numPost = 1; %>
+        <%  for (var i = 0; i < displayData.parentIndex.length; i++) {
+
+            var index = displayData.parentIndex[i];
+            var post = displayData.sentenceData[index];
+
             //skip if no replies
             if (displayData.newParentIndex[i] == -1) {
                 continue;
             }
         %>
-        
+
         <!-- Parent post -->
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -57,9 +57,9 @@
                 <i><%= displayData.userData[index][0] %></i>
             </div>
             <div class="panel-body">
-                <% 
+                <%
                     var demoStr = "#demo" + index;
-                    var idStr = "demo" + index; 
+                    var idStr = "demo" + index;
                 %>
                 <% if (displayData.firstSentence[index] == null) { %>
                     <!-- Show all of the content -->
@@ -78,8 +78,8 @@
                 <% } %>
             </div>
         </div>
-        
-        <!-- Child post --> 
+
+        <!-- Child post -->
         <%
             var replyStr = "#reply" + index;
             var replyIDStr = "reply" + index;
@@ -87,9 +87,9 @@
             var originalIDStr = "originial" + index;
             var originalStr = "#" + originalIDStr;
         %>
-        <% 
+        <%
             if (displayData.summaryArr[i] == null) { continue; }
-            if (displayData.summaryArr[i].length == 0) { continue; }  
+            if (displayData.summaryArr[i].length == 0) { continue; }
         %>
 
         <!-- Start collapsing all replies from here -->
@@ -109,9 +109,28 @@
                         <!-- Collapse original replies here -->
                         <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
                         <div id='<%= originalIDStr %>' class="collapse">
-                            <div class="panel-body">   
-                                <% displayData.sumChildPosts[i].forEach(function(line) { %>
-                                    <p> <%= line %> </p>
+                            <div class="panel-body">
+                                <% displayData.sumChildPosts[i].forEach(function(line, postIndex) { %>
+                                    <% if (line == "") { return; } %>
+                                
+                                    <% sentimentVal = displayData.sentimentValues[i][postIndex].score; %>
+                                    <% posWords = displayData.sentimentValues[i][postIndex].positive; %>
+                                    <% negWords = displayData.sentimentValues[i][postIndex].negative; %>
+                                
+                                    <% backgroundColor = ""; %>
+                                    <% if (sentimentVal > 0) { %>
+                                        <% backgroundColor = "background-color: rgba(0, 255, 0, " + (sentimentVal * 0.05) + ")"; %>
+                                    <% } else if (sentimentVal == 0) { %>
+                                        <% backgroundColor = "background-color: rgba(0, 0, 0, 0)"; %>
+                                    <% } else if (sentimentVal < 0) { %>
+                                        <% backgroundColor = "background-color: rgba(255, 0, 0, " + (-sentimentVal * 0.05) + ")"; %>
+                                    <% } %>
+                                    
+                                    <span class="glyphicon glyphicon-stats"></span>
+                                    <span class="label label-success"><%= posWords %></span>
+                                    <span class="label label-danger"><%= negWords %></span>
+                                
+                                    <p style='<%= backgroundColor %>'> <%= line %> </p>
                                 <% }); %>
                             </div>
                         </div>
@@ -122,5 +141,5 @@
         <hr />
     <% } %>
     </div>
-</body> 
+</body>
 </html>
