@@ -1,5 +1,6 @@
 var Tokenizer = require('sentence-tokenizer');
 var SummaryTool = require('node-summary');
+var sentiment = require('sentiment');
 
 var isWordInSentence = function(sentence, word)
 {
@@ -395,7 +396,7 @@ var getSummaryReplies = function(sumChildPosts)
                 } while (lengthSummary > 10);
 
                 summaryArr.push(newSummary);
-                getSummaryRatio(content, newSummary);
+                //getSummaryRatio(content, newSummary);
             }
         }
     });
@@ -427,6 +428,93 @@ var sortImportantParents = function(summaryArr, parentIndex) {
     return newParentIndex;
 }
 
+var getSentimentValues = function(allPosts)
+{
+    var sentimentValues = [];
+    var positivePosts = [];
+    var neutralPosts = [];
+    var negativePosts = [];
+    
+    allPosts.forEach(function(reply) {
+      if (/\S/.test(reply)) {
+          var sentences = reply.split("\n");
+
+          var temp = [];
+
+          var tempPos = "";
+          var tempNeutral = "";
+          var tempNegative = "";
+          //separate reply posts with a newline
+          for (var index in sentences)
+          {
+              //determine whether a post is positive, neutral, or negative
+              var result = sentiment(sentences[index]);
+              temp.push(result);
+              
+              if (result.score > 0)
+              {
+                  tempPos += sentences[index] + "\n";
+              }
+              else if (result.score == 0)
+              {
+                  tempNeutral += sentences[index] + "\n";
+              }
+              else if (result.score < 0)
+              {
+                  tempNegative += sentences[index] + "\n";
+              }
+          }
+
+          sentimentValues.push(temp);
+          
+          positivePosts.push(tempPos);
+          neutralPosts.push(tempNeutral);
+          negativePosts.push(tempNegative);
+      }
+      else {
+          sentimentValues.push([]);
+          
+          positivePosts.push("");
+          neutralPosts.push("");
+          negativePosts.push("");
+      }
+    });
+
+    return {
+        sentimentValues: sentimentValues,
+        positivePosts: positivePosts,
+        neutralPosts: neutralPosts,
+        negativePosts: negativePosts
+    }
+}
+
+var combineSummaryReplies = function(sentimentValues)
+{
+    var getStr = function(summaryArr)
+    {
+        var tempStr = "";
+        for (newIndex in summaryArr)
+        {
+            tempStr += summaryArr[newIndex] + "\n";
+        } 
+        return tempStr;
+    }
+    
+    var summaryPos = getSummaryReplies(sentimentValues.positivePosts).summaryArr;
+    var summaryNeutral = getSummaryReplies(sentimentValues.neutralPosts).summaryArr;
+    var summaryNeg = getSummaryReplies(sentimentValues.negativePosts).summaryArr;
+    
+    var summaryReplies = [];
+    for (var index in summaryPos)
+    {
+        var temp = [];    
+        temp.push(getStr(summaryPos[index]));
+        temp.push(getStr(summaryNeutral[index]));
+        temp.push(getStr(summaryNeg[index]));
+        summaryReplies.push(temp);
+    }
+    return summaryReplies;
+}
 
 exports.getDisplayData = function(text)
 {
@@ -436,6 +524,9 @@ exports.getDisplayData = function(text)
     var sumChildPosts = getAllChildPosts(summaryData.firstSentence, summaryData.notFstSentence, userData.parentIndex);
     var summaryReplies = getSummaryReplies(sumChildPosts);
     var newParentIndex = sortImportantParents(summaryReplies.summaryArr, userData.parentIndex);
+    
+    var sentimentValues = getSentimentValues(sumChildPosts);
+    var combinedReplies = combineSummaryReplies(sentimentValues);
 
     return {
         sentenceData: sentenceData,
@@ -444,7 +535,8 @@ exports.getDisplayData = function(text)
         notFstSentence: summaryData.notFstSentence,
         parentIndex: userData.parentIndex,
         sumChildPosts: summaryReplies.originalArr,
-        summaryArr: summaryReplies.summaryArr,
-        newParentIndex: newParentIndex
+        summaryArr: combinedReplies,
+        newParentIndex: newParentIndex,
+        sentimentValues: sentimentValues.sentimentValues
     }
 }
