@@ -110,7 +110,7 @@
                         <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
                         <div id='<%= originalIDStr %>' class="collapse">
                             <div class="panel-body">
-                                <% displayData.sumChildPosts[i].forEach(function(line, postIndex) { %>
+                                <% displayData.originalReplies[i].forEach(function(line, postIndex) { %>
                                     <% if (line == "") { return; } %>
                                 
                                     <% sentimentVal = displayData.sentimentValues[i][postIndex].score; %>
