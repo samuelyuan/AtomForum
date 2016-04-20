@@ -197,7 +197,7 @@ var getUserInfo = function(postData)
     };
 }
 
-var getSummarizedText = function(userData)
+var getCondensedText = function(userData)
 {
     var firstSentence = [];
     var notFstSentence = [];
@@ -269,38 +269,44 @@ var getSummarizedText = function(userData)
 }
 
 // sum up all child posts for each parent
-var getAllChildPosts = function(firstSentence, notFstSentence, parentIndex) {
-    var sumOfChildren = [];
+var getAllOriginalReplies = function(condensedData, parentIndex) {
+    var originalRepliesArr = [];
+    
+    var firstSentence = condensedData.firstSentence;
+    var notFstSentence = condensedData.notFstSentence;
 
     //Iterate through each parent post index
     for (var i = 0; i < parentIndex.length - 1; i++) {
-        var a_child = "";
+        var tempArray = [];
 
         //Combine all the children posts for that parent
-        for(var j = parentIndex[i] + 1; j < parentIndex[i + 1]; j++) {
-            if (firstSentence[j] != null) {
-                a_child += firstSentence[j];
+        for (var j = parentIndex[i] + 1; j < parentIndex[i + 1]; j++) {
+            var tempStr = "";
+            if (firstSentence[j] != null) 
+            {
+                tempStr += firstSentence[j];
 
-                if (notFstSentence[j] != null) {
-                    a_child += " " + notFstSentence[j];
+                if (notFstSentence[j] != null) 
+                {
+                    tempStr += " " + notFstSentence[j];
                 }
 
                 //append a period to the end of the post if there isn't any punctuation
                 var punctutation = ".!?";
-                if (punctutation.indexOf(a_child[a_child.length - 1]) == -1 &&
-                    punctutation.indexOf(a_child[a_child.length - 2]) == -1)
+                if (punctutation.indexOf(tempStr[tempStr.length - 1]) == -1 &&
+                    punctutation.indexOf(tempStr[tempStr.length - 2]) == -1)
                 {
-                    a_child += ".";
+                    tempStr += ".";
                 }
 
-                a_child += "\n";
+                tempArray.push(tempStr);
             }
         }
 
-        sumOfChildren.push(a_child);
+        originalRepliesArr.push(tempArray);
     }
 
-    return sumOfChildren;
+    return originalRepliesArr;
 }
 
 
@@ -339,75 +345,61 @@ var getSummaryRatio = function(content, newSummaryArr)
     console.log();
 }
 
-var getSummaryReplies = function(sumChildPosts)
+var getSummaryReplies = function(allPosts)
 {
-    var originalArr = []
+    var getArrayToStr = function(arr)
+    {
+        var tempStr = "";
+        arr.forEach(function(currentStr) {
+            tempStr += currentStr + "\n";
+        }); 
+        return tempStr;
+    }
+ 
     var summaryArr = [];
-
-    sumChildPosts.forEach(function(reply) {
+    allPosts.forEach(function(replyArr) {
         var title = '';
         var content = '';
-
-        //Split the original reply into separate sentences
-        var tokenizer = new Tokenizer('');
-        var sentences = [];
-        tokenizer.setEntry(reply);
-        if (/\S/.test(reply)) {
-            //sentences = tokenizer.getSentences();
-            sentences = reply.split("\n");
-
-            //build content string by separating reply posts with a newline
-            for (var index in sentences)
-            {
-                content += sentences[index] + "\n";
-            }
-        }
-        originalArr.push(sentences);
-
+        
+        //build content string by separating reply posts with a newline
+        replyArr.forEach(function(eachPost) {
+            content += eachPost + "\n";
+        });
+        
         //nothing to summarize
-        if (sentences.length == 0)
+        if (replyArr.length == 0)
         {
             summaryArr.push([]);
+            return;
         }
-        else
+        
+        //no need to summarize if under 250 chars
+        if (content.length < 250)
         {
-            //no need to summarize if under 250 chars
-            if (content.length < 250)
-            {
-                summaryArr.push(sentences);
-            }
-            else
-            {
-                var lengthSummary = sentences.length;
+            summaryArr.push(replyArr);
+            return;
+        }  
+        
+        //summarize the content into a half each time until it is short enough
+        //(i.e. less than x sentences)
+        var newStr = content;
+        var lengthSummary = replyArr.length;
+        var newSummary = '';
+        do {
+            lengthSummary /= 2;
+            newSummary = summarizeText(newStr, lengthSummary);
+            newStr = getArrayToStr(newSummary);
+        } while (lengthSummary > 10);
 
-                var newSummary = '';
-                var newStr = content;
-
-                //summarize the content into a half each time until it is short enough
-                do {
-                    lengthSummary /= 2;
-                    newSummary = summarizeText(newStr, lengthSummary);
-
-                    newStr = '';
-                    for (var index in newSummary)
-                    {
-                        newStr += newSummary[index] + "\n";
-                    }
-                } while (lengthSummary > 10);
-
-                summaryArr.push(newSummary);
-                //getSummaryRatio(content, newSummary);
-            }
-        }
+        summaryArr.push(newSummary);
+        //getSummaryRatio(content, newSummary);    
     });
 
-    return {
-        originalArr: originalArr,
-        summaryArr: summaryArr
-    };
+    return summaryArr;
 }
 
-var sortImportantParents = function(summaryArr, parentIndex) {
+var sortImportantParents = function(originalRepliesArr, parentIndex) {
+    var summaryArr = getSummaryReplies(originalRepliesArr);
     var newParentIndex = [];
     var i;
     for(i=0; i<parentIndex.length-1; i++) {
@@ -428,60 +420,47 @@ var sortImportantParents = function(summaryArr, parentIndex) {
     return newParentIndex;
 }
 
-var getSentimentValues = function(allPosts)
+var getSentimentValues = function(originalRepliesArr)
 {
     var sentimentValues = [];
     var positivePosts = [];
     var neutralPosts = [];
     var negativePosts = [];
     
-    allPosts.forEach(function(reply) {
-      if (/\S/.test(reply)) {
-          var sentences = reply.split("\n");
+    originalRepliesArr.forEach(function(reply) {
+        var temp = [];
 
-          var temp = [];
-
-          var tempPos = "";
-          var tempNeutral = "";
-          var tempNegative = "";
-          //separate reply posts with a newline
-          for (var index in sentences)
-          {
-              //determine whether a post is positive, neutral, or negative
-              var result = sentiment(sentences[index]);
-              temp.push(result);
+        var tempPos = [];
+        var tempNeutral = [];
+        var tempNegative = [];
+        reply.forEach(function(post) {
+            var result = sentiment(post);
               
-              if (result.score > 0)
-              {
-                  tempPos += sentences[index] + "\n";
-              }
-              else if (result.score == 0)
-              {
-                  tempNeutral += sentences[index] + "\n";
-              }
-              else if (result.score < 0)
-              {
-                  tempNegative += sentences[index] + "\n";
-              }
-          }
-
-          sentimentValues.push(temp);
+            temp.push(result);
+            //determine whether a post is positive, neutral, or negative
+            if (result.score > 0)
+            {
+              tempPos.push(post);
+            }
+            else if (result.score == 0)
+            {
+              tempNeutral.push(post);
+            }
+            else if (result.score < 0)
+            {
+              tempNegative.push(post);
+            }
+        });
+        
+        sentimentValues.push(temp);
           
-          positivePosts.push(tempPos);
-          neutralPosts.push(tempNeutral);
-          negativePosts.push(tempNegative);
-      }
-      else {
-          sentimentValues.push([]);
-          
-          positivePosts.push("");
-          neutralPosts.push("");
-          negativePosts.push("");
-      }
+        positivePosts.push(tempPos);
+        neutralPosts.push(tempNeutral);
+        negativePosts.push(tempNegative);
     });
-
+        
     return {
-        sentimentValues: sentimentValues,
+        sentimentArr: sentimentValues,
         positivePosts: positivePosts,
         neutralPosts: neutralPosts,
         negativePosts: negativePosts
@@ -489,28 +468,27 @@ var getSentimentValues = function(allPosts)
 }
 
 var combineSummaryReplies = function(sentimentValues)
-{
-    var getStr = function(summaryArr)
+{        
+    var getArrayToStr = function(arr)
     {
         var tempStr = "";
-        for (newIndex in summaryArr)
-        {
-            tempStr += summaryArr[newIndex] + "\n";
-        } 
+        arr.forEach(function(currentStr) {
+            tempStr += currentStr + "\n";
+        }); 
         return tempStr;
     }
     
-    var summaryPos = getSummaryReplies(sentimentValues.positivePosts).summaryArr;
-    var summaryNeutral = getSummaryReplies(sentimentValues.neutralPosts).summaryArr;
-    var summaryNeg = getSummaryReplies(sentimentValues.negativePosts).summaryArr;
+    var summaryPos = getSummaryReplies(sentimentValues.positivePosts);
+    var summaryNeutral = getSummaryReplies(sentimentValues.neutralPosts);
+    var summaryNeg = getSummaryReplies(sentimentValues.negativePosts);
     
     var summaryReplies = [];
     for (var index in summaryPos)
     {
         var temp = [];    
-        temp.push(getStr(summaryPos[index]));
-        temp.push(getStr(summaryNeutral[index]));
-        temp.push(getStr(summaryNeg[index]));
+        temp.push(getArrayToStr(summaryPos[index]));
+        temp.push(getArrayToStr(summaryNeutral[index]));
+        temp.push(getArrayToStr(summaryNeg[index]));
         summaryReplies.push(temp);
     }
     return summaryReplies;
@@ -520,23 +498,23 @@ exports.getDisplayData = function(text)
 {
     var sentenceData = getSentenceData(text);
     var userData = getUserInfo(sentenceData);
-    var summaryData = getSummarizedText(userData.userData);
-    var sumChildPosts = getAllChildPosts(summaryData.firstSentence, summaryData.notFstSentence, userData.parentIndex);
-    var summaryReplies = getSummaryReplies(sumChildPosts);
-    var newParentIndex = sortImportantParents(summaryReplies.summaryArr, userData.parentIndex);
+    var condensedData = getCondensedText(userData.userData);
+    var originalRepliesArr = getAllOriginalReplies(condensedData, userData.parentIndex);
     
-    var sentimentValues = getSentimentValues(sumChildPosts);
+    var newParentIndex = sortImportantParents(originalRepliesArr, userData.parentIndex);
+    
+    var sentimentValues = getSentimentValues(originalRepliesArr);
     var combinedReplies = combineSummaryReplies(sentimentValues);
 
     return {
         sentenceData: sentenceData,
         userData: userData.userData,
-        firstSentence: summaryData.firstSentence,
-        notFstSentence: summaryData.notFstSentence,
+        firstSentence: condensedData.firstSentence,
+        notFstSentence: condensedData.notFstSentence,
         parentIndex: userData.parentIndex,
-        sumChildPosts: summaryReplies.originalArr,
+        originalReplies: originalRepliesArr,
         summaryArr: combinedReplies,
         newParentIndex: newParentIndex,
-        sentimentValues: sentimentValues.sentimentValues
+        sentimentValues: sentimentValues.sentimentArr
     }
 }
