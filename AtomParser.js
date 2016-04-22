@@ -64,7 +64,7 @@ var getStartEndLines = function(text)
     };
 }
 
-var cleanSentence = function(sentence)
+var cleanPost = function(sentence)
 {
     //remove anything that isn't actually part of the main content
   //  sentence = sentence.replace(/permalinksavereportgive/g, "");
@@ -109,17 +109,17 @@ var cleanSentence = function(sentence)
     return sentence;
 }
 
-var getSentenceData = function(text)
+var getPostData = function(text)
 {
-    var sentenceData = [];
+    var postData = [];
     var lineNumberProfile = 0;
 
     //First find the start and end markers for displaying content
     lineMarkers = getStartEndLines(text);
 
     //Split the data into individual posts
-    text.split("goldreply").forEach(function(sentence) {
-        sentence = cleanSentence(sentence);
+    text.split("goldreply").forEach(function(post) {
+        post = cleanPost(post);
         lineNumberProfile++;
 
          //Ignore anything that isn't an actual post
@@ -129,27 +129,27 @@ var getSentenceData = function(text)
             if (lineNumberProfile == lineMarkers.startLine)
             {
                 //remove extra information before the start marker
-                sentence = sentence.substring(sentence.indexOf("2ex; padding-right: 5px; }"));
+                post = post.substring(post.indexOf("2ex; padding-right: 5px; }"));
                 //remove the start marker
-                sentence = sentence.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
+                post = post.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
 
                 //Element 0 is the title
                 //Element 1 is the first post
-                sentenceArr = sentence.split("\[\–\]");
-                sentenceData.push(sentenceArr[0]);
-                sentenceData.push(sentenceArr[1]);
+                sentenceArr = post.split("\[\–\]");
+                postData.push(sentenceArr[0]);
+                postData.push(sentenceArr[1]);
             }
             else
             {
-                sentence = sentence.replace("\[\–\]", "");
+                post = post.replace("\[\–\]", "");
 
                 //Add sentence to overall data
-                sentenceData.push(sentence);
+                postData.push(post);
             }
         }
     });
 
-    return sentenceData;
+    return postData;
 }
 
 var getUserInfo = function(postData)
@@ -167,29 +167,37 @@ var getUserInfo = function(postData)
             return;
         }
 
-        var arrayOfstr = wholePost.split(" ");
-        var i = 0;
-        while( i != arrayOfstr.length && arrayOfstr[i] == "") {
-            i++;
-        }
-        var a_user = arrayOfstr[i];
-        a_user = a_user.replace(/\s+/g, "");
-        a_user = a_user.replace("\[\–\]", "");
-        i++;
-
-        var postContent = "";
-        while (i != arrayOfstr.length) {
-            //get index of parent post
-            if (arrayOfstr[i].indexOf("permalinksavereportgive") > -1) {
-                parentIndex.push(index);
-                arrayOfstr[i] = arrayOfstr[i].replace(/permalinksavereportgive/g, "");
+        var wordArray = wholePost.split(" ");
+        var usernameIndex = 0;
+        var username = "";
+        for (var i = 0; i < wordArray.length; i++)
+        {
+            if (wordArray[i] == "")
+            {
+                continue;
             }
-            postContent = postContent + " " + arrayOfstr[i];
-            i++;
+            
+            username = wordArray[i];
+            username = username.replace(/\s+/g, "");
+            username = username.replace("\[\–\]", "");
+            usernameIndex = i;
+            break;
         }
+        
+        var postContent = "";
+        for (var i = usernameIndex + 1; i < wordArray.length; i++)
+        {
+            //get index of parent post
+            if (wordArray[i].indexOf("permalinksavereportgive") > -1) {
+                parentIndex.push(index);
+                wordArray[i] = wordArray[i].replace(/permalinksavereportgive/g, "");
+            }
+            postContent = postContent + " " + wordArray[i];
+        }
+        
         //Use an array instead of a map
         //Put username in the first entry, post content in the second
-        userData.push([a_user, postContent]);
+        userData.push([username, postContent]);
     });
     return {
         userData: userData,
@@ -202,64 +210,91 @@ var getCondensedText = function(userData)
     var firstSentence = [];
     var notFstSentence = [];
 
-    //Use a tokenizer to ensure better results
-    var tokenizer = new Tokenizer('');
-
+    var getSentences = function(post)
+    {
+        //Use a tokenizer to ensure better results
+        var tokenizer = new Tokenizer('');
+        
+        var sentences = [];
+        //if not all whitepsace
+        if (/\S/.test(post)) 
+        {
+            tokenizer.setEntry(post);
+            sentences = tokenizer.getSentences();
+        }
+        
+        return sentences;
+    }
+    
+    var getWordCount = function(post)
+    {
+        var tokenizer = new Tokenizer('');
+        tokenizer.setEntry(post);
+        sentences = tokenizer.getSentences();
+        
+        var wordCount = 0;
+        sentences.forEach(function(sent, index) {
+            var tokens = tokenizer.getTokens(index);
+            wordCount += tokens.length;
+        });
+        
+        return wordCount;
+    }
+    
+    var getRemainingSentences = function(sentences)
+    {
+        if (sentences.length <= 1) 
+        {
+            //There's nothing else to show
+            return null;
+        }
+        
+        var remainingSentences;
+        var count = 0;
+        var substrContext = "";
+        for (var i = 1; i < sentences.length; i++) 
+        {
+            //if it's not an empty space
+            if (sentences[i].length > 1) 
+            {
+                 count++;
+                 substrContext += sentences[i] + " ";
+            }
+        }
+        
+        if (count == 0) 
+        {
+            //There's nothing else to show
+            return null;
+        }
+       
+        //normal case
+        return substrContext;
+    }
+    
     userData.forEach(function(postArr, lineNumber) {
         post = postArr[1];
-        var wordCount = 0;
-        if (/\S/.test(post)) {
-            tokenizer.setEntry(post);
-            var sentences = tokenizer.getSentences();
-            sentences.forEach(function(sent, index) {
-                var tokens = tokenizer.getTokens(index);
-                wordCount += tokens.length;
-            });
-        }
-
-        var MAX_WORDS = 5;
+        
+        var sentences = getSentences(post);
+        var wordCount = getWordCount(post);
+        
         //filter out posts that are too short
+        var MAX_WORDS = 5;
         if (wordCount < MAX_WORDS)
         {
             firstSentence.push(null);
             notFstSentence.push(null);
+            return;
         }
-        else if (wordCount >= MAX_WORDS)
-        {
-            //Remove extra whitespace
-            post = post.replace(/\s+/g, " ");
+        
+        //Remove extra whitespace
+        post = post.replace(/\s+/g, " ");
 
-            //Get the rest of the post
-            var remainingSentences;
-            if (sentences.length <= 1) {
-                //There's nothing else to show
-                remainingSentences = null;
-            }
-            else {
-                var count = 0;
-                var substrContext = "";
-                for (var i = 1; i < sentences.length; i++) {
-                    //if it's not an empty space
-                    if (sentences[i].length > 1) {
-                         count++;
-                         substrContext += sentences[i] + " ";
-                    }
-                }
-                if (count == 0) {
-                    //There's nothing else to show
-                    remainingSentences = null;
-                }
-                else {
-                    //Push the rest of the data
-                    remainingSentences = substrContext;
-                }
-            }
-
-            //Save first sentence into one array
-            firstSentence.push(sentences[0]);
-            //Save the remaining sentences into another array
-            notFstSentence.push(remainingSentences);
-        }
+        //Save first sentence into one array
+        firstSentence.push(sentences[0]);
+        //Save the remaining sentences into another array
+        var remainingSentences = getRemainingSentences(sentences);
+        notFstSentence.push(remainingSentences);
     });
 
     return {
@@ -496,8 +531,8 @@ var combineSummaryReplies = function(sentimentValues)
 
 exports.getDisplayData = function(text)
 {
-    var sentenceData = getSentenceData(text);
-    var userData = getUserInfo(sentenceData);
+    var postData = getPostData(text);
+    var userData = getUserInfo(postData);
     var condensedData = getCondensedText(userData.userData);
     var originalRepliesArr = getAllOriginalReplies(condensedData, userData.parentIndex);
     
@@ -507,7 +542,7 @@ exports.getDisplayData = function(text)
     var combinedReplies = combineSummaryReplies(sentimentValues);
 
     return {
-        sentenceData: sentenceData,
+        postData: postData,
         userData: userData.userData,
         firstSentence: condensedData.firstSentence,
         notFstSentence: condensedData.notFstSentence,
