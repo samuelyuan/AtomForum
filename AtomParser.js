@@ -502,7 +502,7 @@ var getSentimentValues = function(originalRepliesArr)
     }
 }
 
-var combineSummaryReplies = function(sentimentValues)
+var combineSummaryReplies = function(sentimentValues, originalRepliesArr)
 {        
     var getArrayToStr = function(arr)
     {
@@ -516,6 +516,83 @@ var combineSummaryReplies = function(sentimentValues)
     var summaryPos = getSummaryReplies(sentimentValues.positivePosts);
     var summaryNeutral = getSummaryReplies(sentimentValues.neutralPosts);
     var summaryNeg = getSummaryReplies(sentimentValues.negativePosts);
+    
+    var hit = [];
+    for (var index in summaryPos) {
+        for(var subindex in summaryPos) {
+            for (var j in originalRepliesArr[index]) {
+                if(originalRepliesArr[index][j].indexOf(summaryPos[index][subindex]) > -1){
+                    var temp = [];
+                    temp.push(parseInt(index));
+                    temp.push(parseInt(j));
+   ///                 temp.push(summaryPos[index][subindex]);
+                    if (hit.indexOf(temp) == -1) {
+                        hit.push(temp);
+                    }
+                }
+            }
+        }
+        for(var subindex in summaryNeutral) {
+            for (var j in originalRepliesArr[index]) {
+                if(originalRepliesArr[index][j].indexOf(summaryNeutral[index][subindex]) > -1){
+                    var temp = [];
+                    temp.push(parseInt(index));
+                    temp.push(parseInt(j));
+     ///               temp.push(summaryNeutral[index][subindex]);
+                    if (hit.indexOf(temp) == -1) {
+                        hit.push(temp);
+                    }
+                }
+            }
+        }
+        for(var subindex in summaryNeg) {
+            for (var j in originalRepliesArr[index]) {
+                if(originalRepliesArr[index][j].indexOf(summaryNeg[index][subindex]) > -1){
+                    var temp = [];
+                    temp.push(parseInt(index));
+                    temp.push(parseInt(j));
+         ///           temp.push(summaryNeg[index][subindex]);
+                    if (hit.indexOf(temp) == -1) {
+                        hit.push(temp);
+                    }
+                }
+            }
+        }
+    }
+    
+    function sortNum(a,b) {
+        if (a[0] > b[0]) {
+            return 1;
+        }
+        else if (a[0] == b[0]) {
+            if (a[1] < b[1]) {return -1;}
+            if (a[1] > b[1]) {return 1;}
+            else {return 0;}
+        }
+        else {
+            return -1;
+        }
+    }
+  
+    hit.sort(sortNum);
+    
+    var uniqueHit = [];
+    for (var i = 1; i < hit.length; ) {
+        if (hit[i-1][0] == hit[i][0] && hit[i-1][1] == hit[i][1]) {
+            hit.splice(i,1);
+        }
+        else {
+            i++;
+        }
+    }
+    
+    console.log(hit);
+    
+    var hitString = [];
+    for (var index in hit) {
+        hitString.push(originalRepliesArr[(hit[index][0])][(hit[index][1])]);
+    }
+    console.log(hitString);
     
     var summaryReplies = [];
     for (var index in summaryPos)
@@ -539,7 +616,7 @@ exports.getDisplayData = function(text)
     var newParentIndex = sortImportantParents(originalRepliesArr, userData.parentIndex);
     
     var sentimentValues = getSentimentValues(originalRepliesArr);
-    var combinedReplies = combineSummaryReplies(sentimentValues);
+    var combinedReplies = combineSummaryReplies(sentimentValues, originalRepliesArr);
 
     return {
         postData: postData,
