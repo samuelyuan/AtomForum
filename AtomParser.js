@@ -502,6 +502,36 @@ var getSentimentValues = function(originalRepliesArr)
     }
 }
 
+var getIndices = function(summaryGroup, originalRepliesArr, index)
+{
+    var postIndices = [];
+
+    //iterate through each sentence in the summary reply
+    for(var subindex in summaryGroup) 
+    {
+        //iterate through each reply in the child reply
+        for (var j in originalRepliesArr[index]) 
+        {
+            //check if the sentence in the summary appears in the original reply
+            var eachChildReply = originalRepliesArr[index][j];
+            var summarySentence = summaryGroup[index][subindex];
+            if(eachChildReply.indexOf(summarySentence) > -1)
+            {
+                var temp = [];
+                temp.push(parseInt(j));
+                temp.push(summarySentence);
+
+                if (postIndices.indexOf(temp) == -1) 
+                {
+                    postIndices.push(temp);
+                }
+            }
+        }
+    }
+    
+    return postIndices;
+}
+
 var combineSummaryReplies = function(sentimentValues, originalRepliesArr)
 {        
     var getArrayToStr = function(arr)
@@ -517,92 +547,74 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr)
     var summaryNeutral = getSummaryReplies(sentimentValues.neutralPosts);
     var summaryNeg = getSummaryReplies(sentimentValues.negativePosts);
     
-    var hit = [];
+    var summaryReplies = [];
+    
     for (var index in summaryPos) {
-        for(var subindex in summaryPos) {
-            for (var j in originalRepliesArr[index]) {
-                if(originalRepliesArr[index][j].indexOf(summaryPos[index][subindex]) > -1){
-                    var temp = [];
-                    temp.push(parseInt(index));
-                    temp.push(parseInt(j));
-   ///                 temp.push(summaryPos[index][subindex]);
-                    if (hit.indexOf(temp) == -1) {
-                        hit.push(temp);
-                    }
-                }
+        //rearrange the order of the post sentences to better match the original
+        var hit = [];
+    
+        var posIndices = getIndices(summaryPos, originalRepliesArr, index);
+        var neutralIndices = getIndices(summaryNeutral, originalRepliesArr, index);
+        var negIndices = getIndices(summaryNeg, originalRepliesArr, index);
+        
+        for (var index in posIndices)
+        {
+            var term = posIndices[index];
+            hit.push(term);
+        }
+        for (var index in neutralIndices)
+        {
+            var term = neutralIndices[index];
+            hit.push(term);
+        }
+        for (var index in negIndices)
+        {
+            var term = negIndices[index];
+            hit.push(term);
+        }
+        
+        hit.sort(sortByPostIndex);
+        
+        //remove duplicates 
+        for (var i = 1; i < hit.length; ) {
+            var isSamePostIndex = (hit[i-1][0] == hit[i][0]);
+            var isSameSentence = (hit[i-1][1] == hit[i][1]);
+            if (isSamePostIndex && isSameSentence) {
+                hit.splice(i,1);
+            }
+            else {
+                i++;
             }
         }
-        for(var subindex in summaryNeutral) {
-            for (var j in originalRepliesArr[index]) {
-                if(originalRepliesArr[index][j].indexOf(summaryNeutral[index][subindex]) > -1){
-                    var temp = [];
-                    temp.push(parseInt(index));
-                    temp.push(parseInt(j));
-     ///               temp.push(summaryNeutral[index][subindex]);
-                    if (hit.indexOf(temp) == -1) {
-                        hit.push(temp);
-                    }
-                }
-            }
+        
+        console.log(hit);
+    
+        var strArr = [];
+        var tempStr = "";
+        for (var index in hit) 
+        {
+            var postSentence = hit[index][1];
+            tempStr += postSentence + " ";        
         }
-        for(var subindex in summaryNeg) {
-            for (var j in originalRepliesArr[index]) {
-                if(originalRepliesArr[index][j].indexOf(summaryNeg[index][subindex]) > -1){
-                    var temp = [];
-                    temp.push(parseInt(index));
-                    temp.push(parseInt(j));
-         ///           temp.push(summaryNeg[index][subindex]);
-                    if (hit.indexOf(temp) == -1) {
-                        hit.push(temp);
-                    }
-                }
-            }
-        }
+        strArr.push(tempStr);
+        
+        //console.log(strArr);
+        
+        summaryReplies.push(strArr);
     }
     
-    function sortNum(a,b) {
+    function sortByPostIndex(a,b) {
         if (a[0] > b[0]) {
             return 1;
         }
         else if (a[0] == b[0]) {
-            if (a[1] < b[1]) {return -1;}
-            if (a[1] > b[1]) {return 1;}
-            else {return 0;}
+            return 0;
         }
         else {
             return -1;
         }
     }
-  
-    hit.sort(sortNum);
     
-    var uniqueHit = [];
-    for (var i = 1; i < hit.length; ) {
-        if (hit[i-1][0] == hit[i][0] && hit[i-1][1] == hit[i][1]) {
-            hit.splice(i,1);
-        }
-        else {
-            i++;
-        }
-    }
-    
-    console.log(hit);
-    
-    var hitString = [];
-    for (var index in hit) {
-        hitString.push(originalRepliesArr[(hit[index][0])][(hit[index][1])]);
-    }
-    console.log(hitString);
-    
-    var summaryReplies = [];
-    for (var index in summaryPos)
-    {
-        var temp = [];    
-        temp.push(getArrayToStr(summaryPos[index]));
-        temp.push(getArrayToStr(summaryNeutral[index]));
-        temp.push(getArrayToStr(summaryNeg[index]));
-        summaryReplies.push(temp);
-    }
     return summaryReplies;
 }
 
