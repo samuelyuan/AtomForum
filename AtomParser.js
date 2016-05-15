@@ -15,7 +15,7 @@ var getStartEndLines = function(text)
 
     var isReddit = false;
 
-    // split data into sentences using a period as a separator
+    // split data into posts 
     text.split("goldreply").forEach(function (sentence) {
         sentence = sentence.replace(/\s+/g, " ")
                             .replace(/[^a-zA-Z0-9 ]/g, "");
@@ -64,49 +64,35 @@ var getStartEndLines = function(text)
     };
 }
 
-var cleanPost = function(sentence)
+//remove anything that isn't actually part of the main content
+var cleanPost = function(originalPost)
 {
-    //remove anything that isn't actually part of the main content
-  //  sentence = sentence.replace(/permalinksavereportgive/g, "");
-    sentence = sentence.replace(/permalinksaveparentreportgive/g, "");
+    //sentence = sentence.replace(/permalinksavereportgive/g, "");   
+    var stringsToFind = [/permalinksaveparentreportgive/g, 
+                         /1 point/g, /[0-9]+ points/g, 
+                         /1 child/g, /[0-9]+ children/g, /([0-9]+ren)/g, /[0-9]+ replies/g, 
+                         /[0-9]+s/g, /[0-9]+ minutes ago/g, 
+                         /1 hour ago/g, /[0-9]+ hours ago/g, 
+                         /1 day ago/g, /[0-9]+ days ago/g, 
+                         /1 month ago/g, /[0-9]+ months ago/g,
+                         /top [0-9]+ comments/g, /commentsshare/g, /load more comments/g, /continue this thread/g,
+                         /[0-9]+ replydeleted removed/g, 
+                         /[0-9]+ reply/g, 
+                         /[0-9]+ commentsshareloadingtop/g,
+                         /besttopnewcontroversialoldrandomq&a/g,
+                         /\[\+\]/g, 
+                         /\[deleted\]/g, 
+                         /\[removed\]/g, 
+                         /\(\)/g,
+                         /\[score hidden\]/g, /comment score below threshold/g];
+        
+    var newPost = originalPost;
+    stringsToFind.forEach(function(findString) {
+        //remove all occurences of this string
+        newPost = newPost.replace(findString, "");
+    });
 
-    sentence = sentence.replace(/1 point/g, "");
-    sentence = sentence.replace(/[0-9]+ points/g, "");
-
-    sentence = sentence.replace(/1 child/g, "");
-    sentence = sentence.replace(/[0-9]+ children/g, "");
-    sentence = sentence.replace(/([0-9]+ren)/g, "");
-
-    sentence = sentence.replace(/[0-9]+ replies/g, "");
-
-    sentence = sentence.replace(/[0-9]+s/g, "");
-    sentence = sentence.replace(/[0-9]+ minutes ago/g, "");
-    sentence = sentence.replace(/1 hour ago/g, "");
-    sentence = sentence.replace(/[0-9]+ hours ago/g, "");
-    sentence = sentence.replace(/1 day ago/g, "");
-    sentence = sentence.replace(/[0-9]+ days ago/g, "");
-    sentence = sentence.replace(/1 month ago/g, "");
-    sentence = sentence.replace(/[0-9]+ months ago/g, "");
-
-    sentence = sentence.replace(/top [0-9]+ comments/g, "");
-    sentence = sentence.replace(/commentsshare/g, "");
-    sentence = sentence.replace(/load more comments/g, "");
-    sentence = sentence.replace(/continue this thread/g, "");
-
-    sentence = sentence.replace(/[0-9]+ replydeleted removed/g, "");
-    sentence = sentence.replace(/[0-9]+ reply/g, "");
-    sentence = sentence.replace(/[0-9]+ commentsshareloadingtop/g, "");
-
-    sentence = sentence.replace(/besttopnewcontroversialoldrandomq&a/g, "");
-
-    sentence = sentence.replace(/\[\+\]/g, "");
-    sentence = sentence.replace(/\[deleted\]/g, "");
-    sentence = sentence.replace(/\[removed\]/g, "");
-    sentence = sentence.replace(/\(\)/g, "");
-    sentence = sentence.replace(/\[score hidden\]/g, "");
-    sentence = sentence.replace(/comment score below threshold/g, "");
-
-    return sentence;
+    return newPost;
 }
 
 var getPostData = function(text)
@@ -475,15 +461,15 @@ var getSentimentValues = function(originalRepliesArr)
             //determine whether a post is positive, neutral, or negative
             if (result.score > 0)
             {
-              tempPos.push(post);
+                tempPos.push(post);
             }
             else if (result.score == 0)
             {
-              tempNeutral.push(post);
+                tempNeutral.push(post);
             }
             else if (result.score < 0)
             {
-              tempNegative.push(post);
+                tempNegative.push(post);
             }
         });
         
@@ -587,7 +573,7 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr)
             }
         }
         
-        console.log(hit);
+        //console.log(hit);
     
         var strArr = [];
         var tempStr = "";
