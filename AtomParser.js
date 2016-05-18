@@ -66,8 +66,7 @@ var getStartEndLines = function(text)
 
 //remove anything that isn't actually part of the main content
 var cleanPost = function(originalPost)
-{
-    //sentence = sentence.replace(/permalinksavereportgive/g, "");   
+{ 
     var stringsToFind = [/permalinksaveparentreportgive/g, 
                          /1 point/g, /[0-9]+ points/g, 
                          /1 child/g, /[0-9]+ children/g, /([0-9]+ren)/g, /[0-9]+ replies/g, 
@@ -99,37 +98,56 @@ var getPostData = function(text)
 {
     var postData = [];
     var lineNumberProfile = 0;
-
-    //First find the start and end markers for displaying content
-    lineMarkers = getStartEndLines(text);
+    var lineMarkers = getStartEndLines(text);
+    
+    var getTitlePost = function(originalPost)
+    {
+        var newPost = originalPost;
+        
+        console.log(newPost);
+        
+        //remove extra information before the start marker
+        newPost = newPost.substring(newPost.indexOf("2ex; padding-right: 5px; }"));
+        //remove the start marker
+        var startMarker = /2ex; padding-right: 5px; }[0-9]+/g;
+        newPost = newPost.replace(startMarker, "");
+        
+        //Element 0 is the title
+        //Element 1 is the first post
+        newPostArr = newPost.split("\[\–\]");
+        
+        return {
+            titleStr: newPostArr[0],
+            firstPost: newPostArr[1]
+        };
+    }
+    
+    var getRegularPost = function(originalPost)
+    {
+        var newPost = originalPost;
+        return newPost.replace("\[\–\]", "");
+    }
 
     //Split the data into individual posts
-    text.split("goldreply").forEach(function(post) {
-        post = cleanPost(post);
+    text.split("goldreply").forEach(function(currentPost) {
+        var post = cleanPost(currentPost);
         lineNumberProfile++;
 
-         //Ignore anything that isn't an actual post
+        //Ignore anything that isn't an actual post
         if (lineNumberProfile >= lineMarkers.startLine
             && lineNumberProfile <= lineMarkers.endLine)
         {
             if (lineNumberProfile == lineMarkers.startLine)
             {
-                //remove extra information before the start marker
-                post = post.substring(post.indexOf("2ex; padding-right: 5px; }"));
-                //remove the start marker
-                post = post.replace(/2ex; padding-right: 5px; }[0-9]+/g, "");
-
-                //Element 0 is the title
-                //Element 1 is the first post
-                sentenceArr = post.split("\[\–\]");
-                postData.push(sentenceArr[0]);
-                postData.push(sentenceArr[1]);
+                post = getTitlePost(post);
+                
+                postData.push(post.titleStr);
+                postData.push(post.firstPost);
             }
             else
             {
-                post = post.replace("\[\–\]", "");
+                post = getRegularPost(post);
 
-                //Add sentence to overall data
                 postData.push(post);
             }
         }
@@ -529,6 +547,18 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr)
         return tempStr;
     }
     
+    function sortByPostIndex(a,b) {
+        if (a[0] > b[0]) {
+            return 1;
+        }
+        else if (a[0] == b[0]) {
+            return 0;
+        }
+        else {
+            return -1;
+        }
+    }
+    
     var summaryPos = getSummaryReplies(sentimentValues.positivePosts);
     var summaryNeutral = getSummaryReplies(sentimentValues.neutralPosts);
     var summaryNeg = getSummaryReplies(sentimentValues.negativePosts);
@@ -588,19 +618,7 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr)
         
         summaryReplies.push(strArr);
     }
-    
-    function sortByPostIndex(a,b) {
-        if (a[0] > b[0]) {
-            return 1;
-        }
-        else if (a[0] == b[0]) {
-            return 0;
-        }
-        else {
-            return -1;
-        }
-    }
-    
+
     return summaryReplies;
 }
 
