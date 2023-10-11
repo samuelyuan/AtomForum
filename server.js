@@ -1,9 +1,11 @@
-var request = require("request"),
-	cheerio = require("cheerio"),
-    express = require("express");
-var app     = express();
-var path = require ('path');
+var axios = require("axios");
+var cheerio = require("cheerio");
+var express = require("express");
+var path = require('path');
+
 var atomParser = require('./AtomParser.js');
+
+var app = express();
 
 // set the view engine to ejs
 app.set('view engine', 'ejs');
@@ -18,25 +20,28 @@ app.get('/',function(req,res){
 
 app.get('/results',function(req, res){
     var dataString = "";
-    
+
     // download that page
-    request(req.query.url, function (error, response, body) {
-        if (error) {
-            console.log("Couldn’t get page because of error: " + error);
-            return;
-        }
+    axios.get(req.query.url)
+			.then(function (response) {
+				console.log("Status: " + response.status);
+				const body = response.data;
 
-        // load the page into cheerio
-        var $page = cheerio.load(body),
-            text = $page("body").text();
+				// load the page into cheerio
+				var $page = cheerio.load(body),
+						text = $page("body").text();
 
-        //get the data to display 
-        var displayData = atomParser.getDisplayData(text);
-        
-        res.render('results', {
-            displayData: displayData
-        });
-    });
+				//get the data to display
+				var displayData = atomParser.getDisplayData(text);
+
+				res.render('results', {
+						displayData: displayData
+				});
+			})
+			.catch(function (error) {
+				console.log("Couldn’t get page because of error: " + error);
+				return;
+			});
 });
 
 app.listen(3000);
