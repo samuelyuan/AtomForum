@@ -7,3 +7,20 @@ A website that takes entire forum threads and outputs a summary. It was mainly d
 3. Parse and clean up the contents of the entire webpage.
 4. For each parent post, summarize post replies and determine sentiment of each reply as positive, neutral, or negative.
 5. Display the results page with the summary. For each parent post, display the first sentence and under the parent post, display a summarized reply.
+
+## Getting Started
+
+1. Clone the project
+
+2. Install npm dependencies
+```
+cd AtomForum
+npm install
+```
+
+3. Run nodejs
+```
+npm run start
+```
+
+4. Visit localhost:3000 to view the page.
