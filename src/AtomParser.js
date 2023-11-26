@@ -1,6 +1,7 @@
 var Tokenizer = require('sentence-tokenizer');
-var sentiment = require('sentiment');
+var Sentiment = require('sentiment');
 
+var sentiment = new Sentiment();
 var summaryTool = require('./summary/summary.js');
 
 var isWordInSentence = function(sentence, word) {
@@ -429,7 +430,7 @@ var getSentimentValues = function(originalRepliesArr) {
         var tempNeutral = [];
         var tempNegative = [];
         reply.forEach(function(post) {
-            var result = sentiment(post);
+            var result = sentiment.analyze(post);
 
             temp.push(result);
             //determine whether a post is positive, neutral, or negative
