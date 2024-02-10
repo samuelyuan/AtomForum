@@ -1,4 +1,4 @@
-var Tokenizer = require('sentence-tokenizer');
+var Tokenizer = require('./tokenizer/tokenizer.js');
 var Sentiment = require('sentiment');
 
 var sentiment = new Sentiment();
