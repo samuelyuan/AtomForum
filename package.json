@@ -14,8 +14,10 @@
     "sentiment": "^5.0.2"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.8",
     "@types/sentiment": "^5.0.4",
     "mocha": "^10.7.3",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.2"
   },
   "scripts": {
@@ -23,7 +25,7 @@
     "build": "tsc",
     "postinstall": "npm run tsc",
     "tsc": "tsc",
-    "test": "mocha"
+    "test": "mocha --require ts-node/register test/**/*.test.ts"
   },
   "author": "",
   "license": "ISC"

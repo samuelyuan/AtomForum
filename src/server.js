@@ -3,7 +3,7 @@ var cheerio = require("cheerio");
 var express = require("express");
 var path = require('path');
 
-import { getDisplayData } from "./AtomParser.js";
+import { AtomParser } from "./AtomParser.js";
 
 var app = express();
 
@@ -20,6 +20,7 @@ app.get('/', function(req, res) {
 
 app.get('/results', function(req, res) {
     var dataString = "";
+    var atomParser = new AtomParser();
 
     // download that page
     axios.get(req.query.url)
@@ -32,7 +33,7 @@ app.get('/results', function(req, res) {
                 text = $page("body").text();
 
             //get the data to display
-            var displayData = getDisplayData(text);
+            var displayData = atomParser.getDisplayData(text);
 
             res.render('results', {
                 displayData: displayData
