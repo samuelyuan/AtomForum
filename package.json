@@ -2,7 +2,6 @@
   "name": "atomforum",
   "version": "1.0.0",
   "description": "A website that takes entire forum threads and outputs a summary.",
-  "main": "server.js",
   "private": true,
   "dependencies": {
     "axios": "^1.7.4",
@@ -15,11 +14,16 @@
     "sentiment": "^5.0.2"
   },
   "devDependencies": {
-    "mocha": "^10.7.3"
+    "@types/sentiment": "^5.0.4",
+    "mocha": "^10.7.3",
+    "typescript": "^5.6.2"
   },
   "scripts": {
-    "test": "mocha",
-    "start": "node ./src/server.js"
+    "start": "node ./dist/server.js",
+    "build": "tsc",
+    "postinstall": "npm run tsc",
+    "tsc": "tsc",
+    "test": "mocha"
   },
   "author": "",
   "license": "ISC"

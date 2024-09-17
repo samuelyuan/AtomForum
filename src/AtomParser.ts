@@ -1,14 +1,36 @@
-var Tokenizer = require('./tokenizer/tokenizer.js');
-var Sentiment = require('sentiment');
+import Tokenizer from './tokenizer/tokenizer.js';
+import Sentiment from 'sentiment';
+import summaryTool from './summary/summary.js';
 
 var sentiment = new Sentiment();
-var summaryTool = require('./summary/summary.js');
 
-var isWordInSentence = function(sentence, word) {
+interface UserInfo {
+    userData: string[][];
+    parentIndex: number[];
+}
+
+interface CondensedText {
+    firstSentence: (string|null)[];
+    notFstSentence: (string|null)[];
+}
+
+interface SentimentValue {
+    score: number;
+}
+
+interface SentimentValuePost {
+    sentimentArr: SentimentValue[][];
+    positivePosts: string[][];
+    neutralPosts: string[][];
+    negativePosts: string[][];
+}
+
+
+var isWordInSentence = function(sentence: string, word: string): boolean {
     return sentence.toLowerCase().indexOf(word) > -1;
 }
 
-var getStartEndLines = function(text) {
+var getStartEndLines = function(text: string) {
     var lineNumberProfile = 0;
     var startDisplayLine = 0;
     var endDisplayLine = 0;
@@ -58,7 +80,7 @@ var getStartEndLines = function(text) {
 }
 
 //remove anything that isn't actually part of the main content
-var cleanPost = function(originalPost) {
+var cleanPost = function(originalPost: string): string {
     var stringsToFind = [/permalinksaveparentreportgive/g,
         /1 point/g, /[0-9]+ points/g,
         /1 child/g, /[0-9]+ children/g, /([0-9]+ren)/g, /[0-9]+ replies/g,
@@ -87,12 +109,12 @@ var cleanPost = function(originalPost) {
     return newPost;
 }
 
-var getPostData = function(text) {
-    var postData = [];
+var getPostData = function(text: string): string[] {
+    var postData: string[] = [];
     var lineNumberProfile = 0;
     var lineMarkers = getStartEndLines(text);
 
-    var getTitlePost = function(originalPost) {
+    var getTitlePost = function(originalPost: string) {
         var newPost = originalPost;
 
         console.log(newPost);
@@ -105,7 +127,7 @@ var getPostData = function(text) {
 
         //Element 0 is the title
         //Element 1 is the first post
-        newPostArr = newPost.split("\[\–\]");
+        var newPostArr = newPost.split("\[\–\]");
 
         return {
             titleStr: newPostArr[0],
@@ -113,7 +135,7 @@ var getPostData = function(text) {
         };
     }
 
-    var getRegularPost = function(originalPost) {
+    var getRegularPost = function(originalPost: string): string {
         var newPost = originalPost;
         return newPost.replace("\[\–\]", "");
     }
@@ -127,10 +149,10 @@ var getPostData = function(text) {
         if (lineNumberProfile >= lineMarkers.startLine &&
             lineNumberProfile <= lineMarkers.endLine) {
             if (lineNumberProfile == lineMarkers.startLine) {
-                post = getTitlePost(post);
+                var titlePost = getTitlePost(post);
 
-                postData.push(post.titleStr);
-                postData.push(post.firstPost);
+                postData.push(titlePost.titleStr);
+                postData.push(titlePost.firstPost);
             } else {
                 post = getRegularPost(post);
 
@@ -142,22 +164,22 @@ var getPostData = function(text) {
     return postData;
 }
 
-var getUserInfo = function(postData) {
-    var userData = [];
-    var parentIndex = [];
-    postData.forEach(function(wholePost, index) {
+var getUserInfo = function(postData: string[]): UserInfo {
+    var userData: string[][] = [];
+    var parentIndex: number[] = [];
+    postData.forEach(function(wholePost: string, index: number) {
         //Special case: title post
         if (index == 0) {
             //format: [post title] ([link]) submitted by [poster name]
-            postTitle = wholePost.substring(0, wholePost.indexOf(")") + 1);
+            var postTitle = wholePost.substring(0, wholePost.indexOf(")") + 1);
 
-            userData.push(postTitle);
+            userData.push([postTitle]);
             return;
         }
 
-        var wordArray = wholePost.split(" ");
-        var usernameIndex = 0;
-        var username = "";
+        var wordArray: string[] = wholePost.split(" ");
+        var usernameIndex: number = 0;
+        var username: string = "";
         for (var i = 0; i < wordArray.length; i++) {
             if (wordArray[i] == "") {
                 continue;
@@ -170,7 +192,7 @@ var getUserInfo = function(postData) {
             break;
         }
 
-        var postContent = "";
+        var postContent: string = "";
         for (var i = usernameIndex + 1; i < wordArray.length; i++) {
             //get index of parent post
             if (wordArray[i].indexOf("permalinksavereportgive") > -1) {
@@ -190,15 +212,15 @@ var getUserInfo = function(postData) {
     };
 }
 
-var getCondensedText = function(userData) {
-    var firstSentence = [];
-    var notFstSentence = [];
+var getCondensedText = function(userData: string[][]): CondensedText {
+    var firstSentence: (string|null)[] = [];
+    var notFstSentence: (string|null)[] = [];
 
-    var getSentences = function(post) {
+    var getSentences = function(post: string): string[] {
         //Use a tokenizer to ensure better results
         var tokenizer = new Tokenizer('');
 
-        var sentences = [];
+        var sentences: string[] = [];
         //if not all whitepsace
         if (/\S/.test(post)) {
             tokenizer.setEntry(post);
@@ -208,10 +230,10 @@ var getCondensedText = function(userData) {
         return sentences;
     }
 
-    var getWordCount = function(post) {
+    var getWordCount = function(post: string): number {
         var tokenizer = new Tokenizer('');
         tokenizer.setEntry(post);
-        sentences = tokenizer.getSentences();
+        var sentences: string[] = tokenizer.getSentences();
 
         var wordCount = 0;
         sentences.forEach(function(sent, index) {
@@ -222,7 +244,7 @@ var getCondensedText = function(userData) {
         return wordCount;
     }
 
-    var getRemainingSentences = function(sentences) {
+    var getRemainingSentences = function(sentences: string[]) {
         if (sentences.length <= 1) {
             //There's nothing else to show
             return null;
@@ -248,8 +270,12 @@ var getCondensedText = function(userData) {
         return substrContext;
     }
 
-    userData.forEach(function(postArr, lineNumber) {
-        post = postArr[1];
+    userData.forEach(function(postArr: string[], lineNumber: number) {
+        if (postArr.length < 2) {
+            // Title post only has one element
+            return;
+        }
+        var post = postArr[1];
 
         var sentences = getSentences(post);
         var wordCount = getWordCount(post);
@@ -279,7 +305,7 @@ var getCondensedText = function(userData) {
 }
 
 // sum up all child posts for each parent
-var getAllOriginalReplies = function(condensedData, parentIndex) {
+var getAllOriginalReplies = function(condensedData: CondensedText, parentIndex: number[]) {
     var originalRepliesArr = [];
 
     var firstSentence = condensedData.firstSentence;
@@ -318,9 +344,9 @@ var getAllOriginalReplies = function(condensedData, parentIndex) {
 
 
 //Helper wrapper function to summarize a block of text
-var summarizeText = function(content, numSentences) {
-    var sortedArr = [];
-    summaryTool.getSortedSentences(content, numSentences, function(err, sorted_sentences) {
+var summarizeText = function(content: string, numSentences: number): string[] {
+    var sortedArr: string[] = [];
+    summaryTool.getSortedSentences(content, numSentences, function(err: Error, sorted_sentences: { [key: string]: string}) {
         if (err) {
             console.log("There was an error.");
             return [];
@@ -336,7 +362,7 @@ var summarizeText = function(content, numSentences) {
 
 //Calculate how effective the summary is
 //Higher summary ratio is better
-var getSummaryRatio = function(content, newSummaryArr) {
+var getSummaryRatio = function(content: string, newSummaryArr: string[]) {
     var summaryLength = 0;
     for (var index in newSummaryArr) {
         summaryLength += newSummaryArr[index].length;
@@ -348,8 +374,8 @@ var getSummaryRatio = function(content, newSummaryArr) {
     console.log();
 }
 
-var getSummaryReplies = function(allPosts) {
-    var getArrayToStr = function(arr) {
+var getSummaryReplies = function(allPosts: string[][]) {
+    var getArrayToStr = function(arr: string[]) {
         var tempStr = "";
         arr.forEach(function(currentStr) {
             tempStr += currentStr + "\n";
@@ -357,13 +383,13 @@ var getSummaryReplies = function(allPosts) {
         return tempStr;
     }
 
-    var summaryArr = [];
-    allPosts.forEach(function(replyArr) {
+    var summaryArr: string[][] = [];
+    allPosts.forEach(function(replyArr: string[]) {
         var title = '';
         var content = '';
 
         //build content string by separating reply posts with a newline
-        replyArr.forEach(function(eachPost) {
+        replyArr.forEach(function(eachPost: string) {
             content += eachPost + "\n";
         });
 
@@ -383,7 +409,7 @@ var getSummaryReplies = function(allPosts) {
         //(i.e. less than x sentences)
         var newStr = content;
         var lengthSummary = replyArr.length;
-        var newSummary = '';
+        var newSummary = [];
         do {
             lengthSummary /= 2;
             newSummary = summarizeText(newStr, lengthSummary);
@@ -391,13 +417,13 @@ var getSummaryReplies = function(allPosts) {
         } while (lengthSummary > 10);
 
         summaryArr.push(newSummary);
-        //getSummaryRatio(content, newSummary);
+        // getSummaryRatio(content, newSummary);
     });
 
     return summaryArr;
 }
 
-var sortImportantParents = function(originalRepliesArr, parentIndex) {
+var sortImportantParents = function(originalRepliesArr: string[][], parentIndex: number[]) {
     var summaryArr = getSummaryReplies(originalRepliesArr);
     var newParentIndex = [];
     var i;
@@ -417,20 +443,20 @@ var sortImportantParents = function(originalRepliesArr, parentIndex) {
     return newParentIndex;
 }
 
-var getSentimentValues = function(originalRepliesArr) {
-    var sentimentValues = [];
-    var positivePosts = [];
-    var neutralPosts = [];
-    var negativePosts = [];
+var getSentimentValues = function(originalRepliesArr: string[][]): SentimentValuePost {
+    var sentimentValues: SentimentValue[][] = [];
+    var positivePosts: string[][] = [];
+    var neutralPosts: string[][] = [];
+    var negativePosts: string[][] = [];
 
     originalRepliesArr.forEach(function(reply) {
-        var temp = [];
+        var temp: SentimentValue[] = [];
 
-        var tempPos = [];
-        var tempNeutral = [];
-        var tempNegative = [];
+        var tempPos: string[] = [];
+        var tempNeutral: string[] = [];
+        var tempNegative: string[] = [];
         reply.forEach(function(post) {
-            var result = sentiment.analyze(post);
+            var result: SentimentValue = sentiment.analyze(post);
 
             temp.push(result);
             //determine whether a post is positive, neutral, or negative
@@ -458,7 +484,7 @@ var getSentimentValues = function(originalRepliesArr) {
     }
 }
 
-var getIndices = function(summaryGroup, originalRepliesArr, index) {
+var getIndices = function(summaryGroup: string[][], originalRepliesArr: string[][], index: any) {
     var postIndices = [];
 
     //iterate through each sentence in the summary reply
@@ -483,8 +509,8 @@ var getIndices = function(summaryGroup, originalRepliesArr, index) {
     return postIndices;
 }
 
-var combineSummaryReplies = function(sentimentValues, originalRepliesArr) {
-    var getArrayToStr = function(arr) {
+var combineSummaryReplies = function(sentimentValues: SentimentValuePost, originalRepliesArr: string[][]): string[][] {
+    var getArrayToStr = function(arr: string[]): string {
         var tempStr = "";
         arr.forEach(function(currentStr) {
             tempStr += currentStr + "\n";
@@ -492,7 +518,7 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr) {
         return tempStr;
     }
 
-    function sortByPostIndex(a, b) {
+    function sortByPostIndex(a: (string|number)[], b: (string|number)[]) {
         if (a[0] > b[0]) {
             return 1;
         } else if (a[0] == b[0]) {
@@ -506,11 +532,11 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr) {
     var summaryNeutral = getSummaryReplies(sentimentValues.neutralPosts);
     var summaryNeg = getSummaryReplies(sentimentValues.negativePosts);
 
-    var summaryReplies = [];
+    var summaryReplies: string[][] = [];
 
     for (var index in summaryPos) {
         //rearrange the order of the post sentences to better match the original
-        var hit = [];
+        var hit: (string|number)[][] = [];
 
         var posIndices = getIndices(summaryPos, originalRepliesArr, index);
         var neutralIndices = getIndices(summaryNeutral, originalRepliesArr, index);
@@ -544,8 +570,8 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr) {
 
         //console.log(hit);
 
-        var strArr = [];
-        var tempStr = "";
+        var strArr: string[] = [];
+        var tempStr: string = "";
         for (var index in hit) {
             var postSentence = hit[index][1];
             tempStr += postSentence + " ";
@@ -560,16 +586,16 @@ var combineSummaryReplies = function(sentimentValues, originalRepliesArr) {
     return summaryReplies;
 }
 
-exports.getDisplayData = function(text) {
-    var postData = getPostData(text);
-    var userData = getUserInfo(postData);
-    var condensedData = getCondensedText(userData.userData);
-    var originalRepliesArr = getAllOriginalReplies(condensedData, userData.parentIndex);
+var getDisplayData = function(text: string) {
+    var postData: string[] = getPostData(text);
+    var userData: UserInfo = getUserInfo(postData);
+    var condensedData: CondensedText = getCondensedText(userData.userData);
+    var originalRepliesArr: string[][] = getAllOriginalReplies(condensedData, userData.parentIndex);
 
-    var newParentIndex = sortImportantParents(originalRepliesArr, userData.parentIndex);
+    var newParentIndex: number[] = sortImportantParents(originalRepliesArr, userData.parentIndex);
 
-    var sentimentValues = getSentimentValues(originalRepliesArr);
-    var combinedReplies = combineSummaryReplies(sentimentValues, originalRepliesArr);
+    var sentimentValues: SentimentValuePost = getSentimentValues(originalRepliesArr);
+    var combinedReplies: string[][] = combineSummaryReplies(sentimentValues, originalRepliesArr);
 
     return {
         postData: postData,
@@ -583,3 +609,5 @@ exports.getDisplayData = function(text) {
         sentimentValues: sentimentValues.sentimentArr
     }
 }
+
+export { getDisplayData }
