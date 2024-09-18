@@ -1,7 +1,8 @@
-var axios = require("axios");
 var cheerio = require("cheerio");
-var express = require("express");
 var path = require('path');
+
+import axios, { AxiosResponse } from "axios";
+import express from "express";
 
 import { AtomParser } from "./AtomParser.js";
 
@@ -14,17 +15,16 @@ app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.static(path.join(__dirname, '../public/fonts')));
 
-app.get('/', function(req, res) {
+app.get('/', function (req: express.Request, res: express.Response) {
     res.render('index');
 });
 
-app.get('/results', function(req, res) {
-    var dataString = "";
+app.get('/results', function (req: express.Request, res: express.Response) {
     var atomParser = new AtomParser();
 
     // download that page
-    axios.get(req.query.url)
-        .then(function(response) {
+    axios.get(req.query.url as string)
+        .then(function (response: AxiosResponse) {
             console.log("Status: " + response.status);
             const body = response.data;
 
@@ -39,8 +39,8 @@ app.get('/results', function(req, res) {
                 displayData: displayData
             });
         })
-        .catch(function(error) {
-            console.log("Couldn’t get page because of error: " + error);
+        .catch(function (error: Error) {
+            console.log("Couldn't get page because of error: " + error);
             return;
         });
 });
