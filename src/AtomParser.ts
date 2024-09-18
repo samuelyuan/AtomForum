@@ -2,12 +2,19 @@ import Tokenizer from './tokenizer/tokenizer.js';
 import Sentiment from 'sentiment';
 import summaryTool from './summary/summary.js';
 
+export type NumberStringTuple = [number, string];
+
+interface PostData {
+    title: string;
+    comments: string[];
+}
+
 interface UserInfo {
     userData: string[][];
     parentIndex: number[];
 }
 
-interface CondensedText {
+export interface CondensedText {
     firstSentence: (string|null)[];
     notFstSentence: (string|null)[];
 }
@@ -25,9 +32,12 @@ interface SentimentValuePost {
 
 export class AtomParser {
     sentiment: Sentiment;
+    tokenizer: Tokenizer;
 
     constructor() {
         this.sentiment = new Sentiment();
+        //Use a tokenizer to ensure better results
+        this.tokenizer = new Tokenizer('');
     }
 
     isWordInSentence(sentence: string, word: string): boolean {
@@ -41,17 +51,15 @@ export class AtomParser {
 
         var isReddit = false;
 
-        var self = this;
-
         // split data into posts
-        text.split("goldreply").forEach(function(sentence) {
+        text.split("goldreply").forEach((sentence) => {
             sentence = sentence.replace(/\s+/g, " ")
                 .replace(/[^a-zA-Z0-9 ]/g, "");
 
             lineNumberProfile++;
 
             //For most online forums
-            if (self.isWordInSentence(sentence, "profile")) {
+            if (this.isWordInSentence(sentence, "profile")) {
                 //The actual forum post data starts from here (line #), not from line #0.
                 if (startDisplayLine == 0) {
                     startDisplayLine = lineNumberProfile;
@@ -59,7 +67,7 @@ export class AtomParser {
             }
 
             //Usually placed at the end of a thread (non-reddit)
-            if (self.isWordInSentence(sentence, "login") || self.isWordInSentence(sentence, "log in")) {
+            if (this.isWordInSentence(sentence, "login") || this.isWordInSentence(sentence, "log in")) {
                 //can't have an end without a start
                 if (startDisplayLine != 0 && isReddit == false) {
                     endDisplayLine = lineNumberProfile;
@@ -67,14 +75,14 @@ export class AtomParser {
             }
 
             //Special case for reddit
-            if (self.isWordInSentence(sentence, "2ex paddingright 5px")) {
+            if (this.isWordInSentence(sentence, "2ex paddingright 5px")) {
                 if (startDisplayLine == 0) {
                     startDisplayLine = lineNumberProfile;
                     isReddit = true;
                 }
             }
 
-            if (self.isWordInSentence(sentence, "redditstatic")) {
+            if (this.isWordInSentence(sentence, "redditstatic")) {
                 endDisplayLine = lineNumberProfile - 1;
             }
         });
@@ -107,7 +115,7 @@ export class AtomParser {
         ];
 
         var newPost = originalPost;
-        stringsToFind.forEach(function(findString) {
+        stringsToFind.forEach((findString) => {
             //remove all occurences of this string
             newPost = newPost.replace(findString, "");
         });
@@ -115,17 +123,15 @@ export class AtomParser {
         return newPost;
     }
 
-    getPostData(text: string): string[] {
+    getPostData(text: string): PostData {
         var postData: string[] = [];
         var lineNumberProfile = 0;
         var lineMarkers = this.getStartEndLines(text);
 
-        var self = this;
-
         var getTitlePost = function(originalPost: string) {
             var newPost = originalPost;
 
-            console.log(newPost);
+            // console.log(newPost);
 
             //remove extra information before the start marker
             newPost = newPost.substring(newPost.indexOf("2ex; padding-right: 5px; }"));
@@ -149,8 +155,9 @@ export class AtomParser {
         }
 
         //Split the data into individual posts
-        text.split("goldreply").forEach(function(currentPost) {
-            var post = self.cleanPost(currentPost);
+        var titleStr: string = "";
+        text.split("goldreply").forEach((currentPost) => {
+            var post = this.cleanPost(currentPost);
             lineNumberProfile++;
 
             //Ignore anything that isn't an actual post
@@ -159,7 +166,7 @@ export class AtomParser {
                 if (lineNumberProfile == lineMarkers.startLine) {
                     var titlePost = getTitlePost(post);
 
-                    postData.push(titlePost.titleStr);
+                    titleStr = titlePost.titleStr;
                     postData.push(titlePost.firstPost);
                 } else {
                     post = getRegularPost(post);
@@ -169,22 +176,21 @@ export class AtomParser {
             }
         });
 
-        return postData;
+        return {
+            title: titleStr,
+            comments: postData,
+        }
     }
 
-    getUserInfo(postData: string[]): UserInfo {
+    getUserInfo(postData: PostData): UserInfo {
         var userData: string[][] = [];
         var parentIndex: number[] = [];
-        postData.forEach(function(wholePost: string, index: number) {
-            //Special case: title post
-            if (index == 0) {
-                //format: [post title] ([link]) submitted by [poster name]
-                var postTitle = wholePost.substring(0, wholePost.indexOf(")") + 1);
+        //Special case: title post
+        //format: [post title] ([link]) submitted by [poster name]
+        var postTitle = postData.title.substring(0, postData.title.indexOf(")") + 1);
+        userData.push([postTitle]);
 
-                userData.push([postTitle]);
-                return;
-            }
-
+        postData.comments.forEach((wholePost: string, index: number) => {
             var wordArray: string[] = wholePost.split(" ");
             var usernameIndex: number = 0;
             var username: string = "";
@@ -204,7 +210,7 @@ export class AtomParser {
             for (var i = usernameIndex + 1; i < wordArray.length; i++) {
                 //get index of parent post
                 if (wordArray[i].indexOf("permalinksavereportgive") > -1) {
-                    parentIndex.push(index);
+                    parentIndex.push(index + 1);
                     wordArray[i] = wordArray[i].replace(/permalinksavereportgive/g, "");
                 }
                 postContent = postContent + " " + wordArray[i];
@@ -224,28 +230,23 @@ export class AtomParser {
         var firstSentence: (string|null)[] = [];
         var notFstSentence: (string|null)[] = [];
 
-        var getSentences = function(post: string): string[] {
-            //Use a tokenizer to ensure better results
-            var tokenizer = new Tokenizer('');
-
+        var getSentences = (post: string): string[] => {
             var sentences: string[] = [];
             //if not all whitepsace
             if (/\S/.test(post)) {
-                tokenizer.setEntry(post);
-                sentences = tokenizer.getSentences();
+                this.tokenizer.setEntry(post);
+                sentences = this.tokenizer.getSentences();
             }
-
             return sentences;
         }
 
-        var getWordCount = function(post: string): number {
-            var tokenizer = new Tokenizer('');
-            tokenizer.setEntry(post);
-            var sentences: string[] = tokenizer.getSentences();
+        var getWordCount = (post: string): number => {
+            this.tokenizer.setEntry(post);
+            var sentences: string[] = this.tokenizer.getSentences();
 
             var wordCount: number = 0;
-            sentences.forEach(function(sent, index) {
-                var tokens = tokenizer.getTokens(index);
+            sentences.forEach((_, index) => {
+                var tokens = this.tokenizer.getTokens(index);
                 wordCount += tokens.length;
             });
 
@@ -258,9 +259,8 @@ export class AtomParser {
                 return null;
             }
 
-            var remainingSentences;
-            var count = 0;
-            var substrContext = "";
+            var count: number = 0;
+            var substrContext: string = "";
             for (var i = 1; i < sentences.length; i++) {
                 //if it's not an empty space
                 if (sentences[i].length > 1) {
@@ -278,9 +278,11 @@ export class AtomParser {
             return substrContext;
         }
 
-        userData.forEach(function(postArr: string[], lineNumber: number) {
+        userData.forEach((postArr: string[], lineNumber: number) => {
             if (postArr.length < 2) {
                 // Title post only has one element
+                firstSentence.push(null);
+                notFstSentence.push(null);
                 return;
             }
             var post = postArr[1];
@@ -302,7 +304,7 @@ export class AtomParser {
             //Save first sentence into one array
             firstSentence.push(sentences[0]);
             //Save the remaining sentences into another array
-            var remainingSentences = getRemainingSentences(sentences);
+            var remainingSentences: string | null = getRemainingSentences(sentences);
             notFstSentence.push(remainingSentences);
         });
 
@@ -313,40 +315,37 @@ export class AtomParser {
     }
 
     // sum up all child posts for each parent
-    getAllOriginalReplies(condensedData: CondensedText, parentIndex: number[]) {
-        var originalRepliesArr = [];
+    getAllOriginalReplies(condensedData: CondensedText, parentIndex: number[]): string[][] {
+        var originalRepliesArr: string[][] = [];
 
-        var firstSentence = condensedData.firstSentence;
-        var notFstSentence = condensedData.notFstSentence;
-
-        var self = this;
+        var firstSentence: (string | null)[] = condensedData.firstSentence;
+        var remainingSentences: (string | null)[] = condensedData.notFstSentence;
 
         //Iterate through each parent post index
         for (var i = 0; i < parentIndex.length - 1; i++) {
-            var tempArray = [];
+            var allChildComments: string[] = [];
 
             //Combine all the children posts for that parent
             for (var j = parentIndex[i] + 1; j < parentIndex[i + 1]; j++) {
-                var tempStr = "";
+                var childComment: string = "";
                 if (firstSentence[j] != null) {
-                    tempStr += firstSentence[j];
-
-                    if (notFstSentence[j] != null) {
-                        tempStr += " " + notFstSentence[j];
+                    childComment += firstSentence[j];
+                    if (remainingSentences[j] != null) {
+                        childComment += " " + remainingSentences[j];
                     }
 
                     //append a period to the end of the post if there isn't any punctuation
                     var punctutation = ".!?";
-                    if (punctutation.indexOf(tempStr[tempStr.length - 1]) == -1 &&
-                        punctutation.indexOf(tempStr[tempStr.length - 2]) == -1) {
-                        tempStr += ".";
+                    if (punctutation.indexOf(childComment[childComment.length - 1]) == -1 &&
+                        punctutation.indexOf(childComment[childComment.length - 2]) == -1) {
+                        childComment += ".";
                     }
 
-                    tempArray.push(tempStr);
+                    allChildComments.push(childComment);
                 }
             }
 
-            originalRepliesArr.push(tempArray);
+            originalRepliesArr.push(allChildComments);
         }
 
         return originalRepliesArr;
@@ -355,15 +354,13 @@ export class AtomParser {
     //Helper wrapper function to summarize a block of text
     summarizeText(content: string, numSentences: number): string[] {
         var sortedArr: string[] = [];
-        summaryTool.getSortedSentences(content, numSentences, function(err: Error, sorted_sentences: { [key: string]: string}) {
+        summaryTool.getSortedSentences(content, numSentences, function(err: Error, sorted_sentences: string[]) {
             if (err) {
                 console.log("There was an error.");
                 return [];
             }
 
-            for (var index in sorted_sentences) {
-                sortedArr.push(sorted_sentences[index]);
-            }
+            sorted_sentences.forEach((sentence) => sortedArr.push(sentence));
         });
 
         return sortedArr;
@@ -372,7 +369,7 @@ export class AtomParser {
     //Calculate how effective the summary is
     //Higher summary ratio is better
     getSummaryRatio(content: string, newSummaryArr: string[]) {
-        var summaryLength = 0;
+        var summaryLength: number = 0;
         for (var index in newSummaryArr) {
             summaryLength += newSummaryArr[index].length;
         }
@@ -383,26 +380,20 @@ export class AtomParser {
         console.log();
     }
 
-    getSummaryReplies(allPosts: string[][]) {
-        var getArrayToStr = function(arr: string[]) {
-            var tempStr = "";
-            arr.forEach(function(currentStr) {
+    getSummaryReplies(allPosts: string[][]): string[][] {
+        var getArrayToStr = function(arr: string[]): string {
+            var tempStr: string = "";
+            arr.forEach((currentStr) => {
                 tempStr += currentStr + "\n";
             });
             return tempStr;
         }
 
-        var self = this;
-
         var summaryArr: string[][] = [];
-        allPosts.forEach(function(replyArr: string[]) {
+        allPosts.forEach((replyArr: string[]) => {
             var title = '';
-            var content = '';
-
             //build content string by separating reply posts with a newline
-            replyArr.forEach(function(eachPost: string) {
-                content += eachPost + "\n";
-            });
+            var content: string = getArrayToStr(replyArr);
 
             //nothing to summarize
             if (replyArr.length == 0) {
@@ -418,12 +409,12 @@ export class AtomParser {
 
             //summarize the content into a half each time until it is short enough
             //(i.e. less than x sentences)
-            var newStr = content;
-            var lengthSummary = replyArr.length;
-            var newSummary = [];
+            var newStr: string = content;
+            var lengthSummary: number = replyArr.length;
+            var newSummary: string[] = [];
             do {
                 lengthSummary /= 2;
-                newSummary = self.summarizeText(newStr, lengthSummary);
+                newSummary = this.summarizeText(newStr, lengthSummary);
                 newStr = getArrayToStr(newSummary);
             } while (lengthSummary > 10);
 
@@ -434,13 +425,11 @@ export class AtomParser {
         return summaryArr;
     }
 
-    sortImportantParents(originalRepliesArr: string[][], parentIndex: number[]) {
-        var summaryArr = this.getSummaryReplies(originalRepliesArr);
-        var newParentIndex = [];
-        var i;
-        for (i = 0; i < parentIndex.length - 1; i++) {
-            var j = i + 1;
-            if (parentIndex[i] + 1 == parentIndex[j]) { // No children
+    sortImportantParents(originalRepliesArr: string[][], parentIndex: number[]): number[] {
+        var summaryArr: string[][] = this.getSummaryReplies(originalRepliesArr);
+        var newParentIndex: number[] = [];
+        for (var i = 0; i < parentIndex.length - 1; i++) {
+            if (parentIndex[i] + 1 == parentIndex[i + 1]) { // No children
                 newParentIndex.push(-1);
             } else if (summaryArr[i].length == 0) { // No child left after summarization
                 newParentIndex.push(-1);
@@ -460,33 +449,31 @@ export class AtomParser {
         var neutralPosts: string[][] = [];
         var negativePosts: string[][] = [];
 
-        var self = this;
+        originalRepliesArr.forEach((reply) => {
+            var allScores: SentimentValue[] = [];
 
-        originalRepliesArr.forEach(function(reply) {
-            var temp: SentimentValue[] = [];
+            var postPos: string[] = [];
+            var postNeutral: string[] = [];
+            var postNegative: string[] = [];
+            reply.forEach((post) => {
+                var result: SentimentValue = this.sentiment.analyze(post);
 
-            var tempPos: string[] = [];
-            var tempNeutral: string[] = [];
-            var tempNegative: string[] = [];
-            reply.forEach(function(post) {
-                var result: SentimentValue = self.sentiment.analyze(post);
-
-                temp.push(result);
+                allScores.push(result);
                 //determine whether a post is positive, neutral, or negative
                 if (result.score > 0) {
-                    tempPos.push(post);
+                    postPos.push(post);
                 } else if (result.score == 0) {
-                    tempNeutral.push(post);
+                    postNeutral.push(post);
                 } else if (result.score < 0) {
-                    tempNegative.push(post);
+                    postNegative.push(post);
                 }
             });
 
-            sentimentValues.push(temp);
+            sentimentValues.push(allScores);
 
-            positivePosts.push(tempPos);
-            neutralPosts.push(tempNeutral);
-            negativePosts.push(tempNegative);
+            positivePosts.push(postPos);
+            neutralPosts.push(postNeutral);
+            negativePosts.push(postNegative);
         });
 
         return {
@@ -497,33 +484,29 @@ export class AtomParser {
         }
     }
 
-    getIndices(summaryGroup: string[][], originalRepliesArr: string[][], index: any): (string | number)[][] {
-        var postIndices = [];
+    getPostIndices(summaryGroup: string[][], originalRepliesArr: string[][], index: number): NumberStringTuple[] {
+        var postIndices: NumberStringTuple[] = [];
 
         //iterate through each sentence in the summary reply
-        for (var subindex in summaryGroup) {
+        summaryGroup[index].forEach((summarySentence) => {
             //iterate through each reply in the child reply
-            for (var j in originalRepliesArr[index]) {
+            originalRepliesArr[index].forEach((eachChildReply: string, childReplyIndex: number) => {
                 //check if the sentence in the summary appears in the original reply
-                var eachChildReply = originalRepliesArr[index][j];
-                var summarySentence = summaryGroup[index][subindex];
                 if (eachChildReply.indexOf(summarySentence) > -1) {
-                    var temp = [];
-                    temp.push(parseInt(j));
-                    temp.push(summarySentence);
+                    var tuple: NumberStringTuple = [childReplyIndex, summarySentence];
 
-                    if (postIndices.indexOf(temp) == -1) {
-                        postIndices.push(temp);
+                    if (postIndices.indexOf(tuple) == -1) {
+                        postIndices.push(tuple);
                     }
                 }
-            }
-        }
+            });
+        });
 
         return postIndices;
     }
 
     combineSummaryReplies(sentimentValues: SentimentValuePost, originalRepliesArr: string[][]): string[][] {
-        function sortByPostIndex(a: (string|number)[], b: (string|number)[]) {
+        function sortByPostIndex(a: NumberStringTuple, b: NumberStringTuple) {
             if (a[0] > b[0]) {
                 return 1;
             } else if (a[0] == b[0]) {
@@ -539,60 +522,43 @@ export class AtomParser {
 
         var summaryReplies: string[][] = [];
 
-        for (var index in summaryPos) {
+        summaryPos.forEach((_, index) => {
             //rearrange the order of the post sentences to better match the original
-            var hit: (string|number)[][] = [];
+            var matchingSentences: NumberStringTuple[] = [];
 
-            var posIndices = this.getIndices(summaryPos, originalRepliesArr, index);
-            var neutralIndices = this.getIndices(summaryNeutral, originalRepliesArr, index);
-            var negIndices = this.getIndices(summaryNeg, originalRepliesArr, index);
+            var posIndices = this.getPostIndices(summaryPos, originalRepliesArr, index);
+            var neutralIndices = this.getPostIndices(summaryNeutral, originalRepliesArr, index);
+            var negIndices = this.getPostIndices(summaryNeg, originalRepliesArr, index);
 
-            for (var index in posIndices) {
-                var term = posIndices[index];
-                hit.push(term);
-            }
-            for (var index in neutralIndices) {
-                var term = neutralIndices[index];
-                hit.push(term);
-            }
-            for (var index in negIndices) {
-                var term = negIndices[index];
-                hit.push(term);
-            }
+            posIndices.forEach((tuple) => matchingSentences.push(tuple));
+            neutralIndices.forEach((tuple) => matchingSentences.push(tuple));
+            negIndices.forEach((tuple) => matchingSentences.push(tuple));
 
-            hit.sort(sortByPostIndex);
+            matchingSentences.sort(sortByPostIndex);
 
             //remove duplicates
-            for (var i = 1; i < hit.length;) {
-                var isSamePostIndex = (hit[i - 1][0] == hit[i][0]);
-                var isSameSentence = (hit[i - 1][1] == hit[i][1]);
+            for (var i = 1; i < matchingSentences.length;) {
+                var isSamePostIndex = (matchingSentences[i - 1][0] == matchingSentences[i][0]);
+                var isSameSentence = (matchingSentences[i - 1][1] == matchingSentences[i][1]);
                 if (isSamePostIndex && isSameSentence) {
-                    hit.splice(i, 1);
+                    matchingSentences.splice(i, 1);
                 } else {
                     i++;
                 }
             }
 
-            //console.log(hit);
-
+            var combinedSentences = matchingSentences.map((tuple) => tuple[1]).join(" ");
             var strArr: string[] = [];
-            var tempStr: string = "";
-            for (var index in hit) {
-                var postSentence = hit[index][1];
-                tempStr += postSentence + " ";
-            }
-            strArr.push(tempStr);
-
-            //console.log(strArr);
+            strArr.push(combinedSentences);
 
             summaryReplies.push(strArr);
-        }
+        });
 
         return summaryReplies;
     }
 
     getDisplayData(text: string) {
-        var postData: string[] = this.getPostData(text);
+        var postData: PostData = this.getPostData(text);
         var userData: UserInfo = this.getUserInfo(postData);
         var condensedData: CondensedText = this.getCondensedText(userData.userData);
         var originalRepliesArr: string[][] = this.getAllOriginalReplies(condensedData, userData.parentIndex);
