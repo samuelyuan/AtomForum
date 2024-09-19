@@ -6,94 +6,166 @@ describe('AtomParser', function () {
 
     describe('#getUserInfo()', function () {
         it('Split username from post content', function () {
-            var postData = {
-                title: "Post title (link) submitted by user0",
-                comments: [
-                    "user1 post1",
-                    "user2 post2 permalinksavereportgive",
-                    "user3 post3",
-                ]
-            }
-            var output = atomParser.getUserInfo(postData);
-            assert.equal(output.userData.length, 4);
-            assert.equal(output.userData[0].length, 1);
-            assert.equal(output.userData[0][0], "Post title (link)");
-            for (var i = 1; i < output.userData.length; i++) {
-                assert.equal(output.userData[i].length, 2);
-                assert.equal(output.userData[i][0], "user" + i);
-            }
+            var postData = [
+                "user1 post1",
+                "user2 post2 permalinksavereportgive",
+                "user3 post3",
+            ]
+            var output = atomParser.parseUserAndCommentFromPosts(postData);
 
-            assert.equal(output.parentIndex.length, 1);
-            assert.ok(output.parentIndex.includes(2));
+            var expected = [
+                { username: 'user1', content: 'post1', isParent: false },
+                { username: 'user2', content: 'post2 ', isParent: true },
+                { username: 'user3', content: 'post3', isParent: false }
+            ];
+
+            assert.equal(output.length, 3);
+            for (var i = 0; i < output.length; i++) {
+                assert.equal(output[i].username, expected[i].username);
+                assert.equal(output[i].content, expected[i].content);
+                assert.equal(output[i].isParent, expected[i].isParent);
+            }
         });
+
+        it('Build parent index', function () {
+            var userComments = [
+                { username: 'user1', content: 'post1', isParent: false },
+                { username: 'user2', content: 'post2 ', isParent: true },
+                { username: 'user3', content: 'post3', isParent: false }
+            ];
+
+            var parentIndex: number[] = atomParser.buildParentIndex(userComments)
+
+            var expected: number[] = [1]
+
+            assert.equal(parentIndex.length, 1);
+            for (var i = 0; i < parentIndex.length; i++) {
+                assert.equal(parentIndex[i], expected[i]);
+            }
+        })
     });
+
+    describe('#tokenizerTests()', function () {
+        it('Split text into sentences', function () {
+            var sampleText = "Split text into sentences. This should be an array. There should be multiple elements.";
+            var sentences = atomParser.splitTextIntoSentences(sampleText);
+
+            var expected = [
+                'Split text into sentences.',
+                'This should be an array.',
+                'There should be multiple elements.'
+            ]
+
+            assert.equal(sentences.length, 3);
+            for (var i = 0; i < sentences.length; i++) {
+                assert.equal(sentences[i], expected[i]);
+            }
+        })
+
+        it('Get word count', function () {
+            var sampleText = "Split text into sentences. This should be an array. There should be multiple elements.";
+            var wordCount = atomParser.getWordCount(sampleText);
+
+            assert.equal(wordCount, 14);
+        })
+    })
 
     describe('#getCondensedText()', function () {
         it("Split text into first sentence and remaining sentences", function () {
-            var userData = [
-                ['title'],
-                ['user1', 'word1 word2 word3 word4 word5 word6 word7. sentence2word1 sentence2word2.'],
-                ['user2', 'short sentence.']
+            var parentPosts = [
+                {
+                    parentComment: {
+                        username: 'user1',
+                        content: 'word1 word2 word3 word4 word5 word6 word7. sentence2word1 sentence2word2.',
+                        isParent: false,
+                    },
+                    childComments: [],
+                },
+                {
+                    parentComment: {
+                        username: 'user2',
+                        content: 'short sentence.',
+                        isParent: false,
+                    },
+                    childComments: [],
+                }
             ]
 
-            var condensedText = atomParser.getCondensedText(userData);
+            var condensedText = atomParser.getCondensedTextForParent(parentPosts);
             var expected: CondensedText = {
                 firstSentence: [
-                    null,
                     'word1 word2 word3 word4 word5 word6 word7.',
                     null
                 ],
-                notFstSentence: [
-                    null,
-                    'sentence2word1 sentence2word2. ',
+                remainingSentences: [
+                    'sentence2word1 sentence2word2.',
                     null
                 ]
             };
 
             assert.equal(condensedText.firstSentence.length, expected.firstSentence.length);
-            assert.equal(condensedText.notFstSentence.length, expected.notFstSentence.length);
+            assert.equal(condensedText.remainingSentences.length, expected.remainingSentences.length);
             for (var i = 0; i < condensedText.firstSentence.length; i++) {
                 assert.equal(condensedText.firstSentence[i], expected.firstSentence[i]);
             }
-            for (var i = 0; i < condensedText.notFstSentence.length; i++) {
-                assert.equal(condensedText.notFstSentence[i], expected.notFstSentence[i]);
+            for (var i = 0; i < condensedText.remainingSentences.length; i++) {
+                assert.equal(condensedText.remainingSentences[i], expected.remainingSentences[i]);
             }
         });
     })
 
     describe('#getAllOriginalReplies()', function () {
         it("Get original replies from parent comments", function () {
-            var condensedData: CondensedText = {
-                firstSentence: [
-                    'sentence1',
-                    null,
-                    'sentence2',
-                    null,
-                    'sentence3',
-                    'sentence4',
-                    'sentence5',
-                    'sentence6'
-                ],
-                notFstSentence: [
-                    'sentence1 part2',
-                    null,
-                    null,
-                    null,
-                    'sentence3 part2',
-                    null,
-                ],
-            }
-            var parentIndex = [1, 5, 8]
+            var parentPosts = [
+                {
+                    parentComment: {
+                        username: "parentuser1",
+                        content: "sentence1 sentence1 part2.",
+                        isParent: true,
+                    },
+                    childComments: [
+                        {
+                            username: "user1",
+                            content: "sentence2 word1 word2 word3 word4.",
+                            isParent: false,
+                        },
+                        {
+                            username: "user2",
+                            content: "sentence3 sentence3 part2 part3 part4.",
+                            isParent: false,
+                        }
+                    ]
+                },
+                {
+                    parentComment: {
+                        username: "parentuser2",
+                        content: "sentence4.",
+                        isParent: true,
+                    },
+                    childComments: [
+                        {
+                            username: "user3",
+                            content: "sentence5 word1 word2 word3 word4.",
+                            isParent: false,
+                        },
+                        {
+                            username: "user4",
+                            content: "sentence6 word1 word2 word3 word4.",
+                            isParent: false,
+                        }
+                    ]
+                },
+            ]
 
-            var originalRepliesArr = atomParser.getAllOriginalReplies(condensedData, parentIndex);
+            var originalRepliesArr = atomParser.getAllOriginalReplies(parentPosts);
             var expected = [
                 [ // parent is 'sentence1 sentence1 part2.'
-                    'sentence2.',
-                    'sentence3 sentence3 part2.',
+                    'sentence2 word1 word2 word3 word4.',
+                    'sentence3 sentence3 part2 part3 part4.',
                 ],
                 [ // parent is 'sentence4.'
-                    'sentence5.',
-                    'sentence6.'
+                    'sentence5 word1 word2 word3 word4.',
+                    'sentence6 word1 word2 word3 word4.'
                 ]
             ];
 

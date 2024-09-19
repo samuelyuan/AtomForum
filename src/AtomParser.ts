@@ -4,19 +4,25 @@ import summaryTool from './summary/summary.js';
 
 export type NumberStringTuple = [number, string];
 
-interface PostData {
+interface TitleComments {
     title: string;
     comments: string[];
 }
 
-interface UserInfo {
-    userData: string[][];
-    parentIndex: number[];
+interface UserComment {
+    username: string;
+    content: string;
+    isParent: boolean;
 }
 
 export interface CondensedText {
-    firstSentence: (string|null)[];
-    notFstSentence: (string|null)[];
+    firstSentence: (string | null)[];
+    remainingSentences: (string | null)[];
+}
+
+interface ParentPosts {
+    parentComment: UserComment;
+    childComments: UserComment[];
 }
 
 interface SentimentValue {
@@ -123,15 +129,18 @@ export class AtomParser {
         return newPost;
     }
 
-    getPostData(text: string): PostData {
+    parsePostTitle(title: string) {
+        //Special case: title post
+        //format: [post title] ([link]) submitted by [poster name]
+        return title.substring(0, title.indexOf(")") + 1);
+    }
+
+    buildPostDataFromString(text: string): TitleComments {
         var postData: string[] = [];
-        var lineNumberProfile = 0;
         var lineMarkers = this.getStartEndLines(text);
 
-        var getTitlePost = function(originalPost: string) {
+        var getTitlePost = function (originalPost: string) {
             var newPost = originalPost;
-
-            // console.log(newPost);
 
             //remove extra information before the start marker
             newPost = newPost.substring(newPost.indexOf("2ex; padding-right: 5px; }"));
@@ -149,16 +158,18 @@ export class AtomParser {
             };
         }
 
-        var getRegularPost = function(originalPost: string): string {
+        var getRegularPost = function (originalPost: string): string {
             var newPost = originalPost;
             return newPost.replace("\[\–\]", "");
         }
 
         //Split the data into individual posts
         var titleStr: string = "";
-        text.split("goldreply").forEach((currentPost) => {
-            var post = this.cleanPost(currentPost);
-            lineNumberProfile++;
+        var cleanedPosts = text.split("goldreply").map((currentPost) => {
+            return this.cleanPost(currentPost);
+        });
+        cleanedPosts.forEach((post, index) => {
+            var lineNumberProfile = index + 1;
 
             //Ignore anything that isn't an actual post
             if (lineNumberProfile >= lineMarkers.startLine &&
@@ -169,107 +180,73 @@ export class AtomParser {
                     titleStr = titlePost.titleStr;
                     postData.push(titlePost.firstPost);
                 } else {
-                    post = getRegularPost(post);
-
-                    postData.push(post);
+                    postData.push(getRegularPost(post));
                 }
             }
         });
 
         return {
-            title: titleStr,
+            title: this.parsePostTitle(titleStr),
             comments: postData,
         }
     }
 
-    getUserInfo(postData: PostData): UserInfo {
-        var userData: string[][] = [];
-        var parentIndex: number[] = [];
-        //Special case: title post
-        //format: [post title] ([link]) submitted by [poster name]
-        var postTitle = postData.title.substring(0, postData.title.indexOf(")") + 1);
-        userData.push([postTitle]);
-
-        postData.comments.forEach((wholePost: string, index: number) => {
-            var wordArray: string[] = wholePost.split(" ");
-            var usernameIndex: number = 0;
-            var username: string = "";
-            for (var i = 0; i < wordArray.length; i++) {
-                if (wordArray[i] == "") {
-                    continue;
-                }
-
-                username = wordArray[i];
-                username = username.replace(/\s+/g, "");
-                username = username.replace("\[\–\]", "");
-                usernameIndex = i;
-                break;
-            }
-
-            var postContent: string = "";
-            for (var i = usernameIndex + 1; i < wordArray.length; i++) {
-                //get index of parent post
-                if (wordArray[i].indexOf("permalinksavereportgive") > -1) {
-                    parentIndex.push(index + 1);
-                    wordArray[i] = wordArray[i].replace(/permalinksavereportgive/g, "");
-                }
-                postContent = postContent + " " + wordArray[i];
-            }
-
-            //Use an array instead of a map
-            //Put username in the first entry, post content in the second
-            userData.push([username, postContent]);
-        });
-        return {
-            userData: userData,
-            parentIndex: parentIndex
-        };
+    cleanUsernameString(word: string): string {
+        var username = word;
+        username = username.replace(/\s+/g, "");
+        username = username.replace("\[\–\]", "");
+        return username;
     }
 
-    getCondensedText(userData: string[][]): CondensedText {
-        var firstSentence: (string|null)[] = [];
-        var notFstSentence: (string|null)[] = [];
+    parseUserAndCommentFromPosts(postData: string[]): UserComment[] {
+        return postData.map((wholePost: string) => {
+            var wordArray: string[] = wholePost.split(" ")
+                .filter((word) => word != "");
 
-        var getSentences = (post: string): string[] => {
-            var sentences: string[] = [];
-            //if not all whitepsace
-            if (/\S/.test(post)) {
-                this.tokenizer.setEntry(post);
-                sentences = this.tokenizer.getSentences();
+            // First word is username
+            var username: string = this.cleanUsernameString(wordArray[0]);
+
+            // Remaining words are part of the post content
+            var postContent: string = wordArray.slice(1).join(" ");
+            var isParent: boolean = false;
+            if (postContent.indexOf("permalinksavereportgive") > -1) {
+                isParent = true;
+                postContent = postContent.replace(/permalinksavereportgive/g, "");
             }
-            return sentences;
-        }
 
-        var getWordCount = (post: string): number => {
-            this.tokenizer.setEntry(post);
-            var sentences: string[] = this.tokenizer.getSentences();
+            return {
+                username: username,
+                content: postContent,
+                isParent: isParent,
+            }
+        });
+    }
 
-            var wordCount: number = 0;
-            sentences.forEach((_, index) => {
-                var tokens = this.tokenizer.getTokens(index);
-                wordCount += tokens.length;
-            });
+    buildParentIndex(userComments: UserComment[]): number[] {
+        var parentIndex: number[] = [];
+        userComments.forEach((userComment: UserComment, index: number) => {
+            if (userComment.isParent) {
+                parentIndex.push(index);
+            }
+        });
+        return parentIndex;
+    }
 
-            return wordCount;
-        }
+    // When rendering parent posts, only first sentence will be shown. The user will need to click "Show more" to see the remaining sentences.
+    getCondensedTextForParent(parentPosts: ParentPosts[]): CondensedText {
+        var firstSentence: (string | null)[] = [];
+        var notFstSentence: (string | null)[] = [];
 
-        var getRemainingSentences = function(sentences: string[]): string | null {
+        var getRemainingSentences = function (sentences: string[]): string | null {
             if (sentences.length <= 1) {
                 //There's nothing else to show
                 return null;
             }
 
-            var count: number = 0;
-            var substrContext: string = "";
-            for (var i = 1; i < sentences.length; i++) {
-                //if it's not an empty space
-                if (sentences[i].length > 1) {
-                    count++;
-                    substrContext += sentences[i] + " ";
-                }
-            }
+            var nonEmptySentences = sentences.splice(1).filter((sentence) => sentence.length > 1);
+            var substrContext = nonEmptySentences.join(" ");
 
-            if (count == 0) {
+            if (nonEmptySentences.length == 0) {
                 //There's nothing else to show
                 return null;
             }
@@ -278,21 +255,14 @@ export class AtomParser {
             return substrContext;
         }
 
-        userData.forEach((postArr: string[], lineNumber: number) => {
-            if (postArr.length < 2) {
-                // Title post only has one element
-                firstSentence.push(null);
-                notFstSentence.push(null);
-                return;
-            }
-            var post = postArr[1];
-
-            var sentences: string[] = getSentences(post);
-            var wordCount: number = getWordCount(post);
-
+        parentPosts.forEach((parentPost) => {
+            var post = parentPost.parentComment.content;
+            var sentences: string[] = this.splitTextIntoSentences(post);
+            var wordCount: number = this.getWordCount(post);
+            
             //filter out posts that are too short
-            var MAX_WORDS = 5;
-            if (wordCount < MAX_WORDS) {
+            const MIN_WORDS = 5;
+            if (wordCount < MIN_WORDS) {
                 firstSentence.push(null);
                 notFstSentence.push(null);
                 return;
@@ -304,57 +274,84 @@ export class AtomParser {
             //Save first sentence into one array
             firstSentence.push(sentences[0]);
             //Save the remaining sentences into another array
-            var remainingSentences: string | null = getRemainingSentences(sentences);
-            notFstSentence.push(remainingSentences);
-        });
+            notFstSentence.push(getRemainingSentences(sentences));
+        })
 
         return {
             firstSentence: firstSentence,
-            notFstSentence: notFstSentence
+            remainingSentences: notFstSentence
         };
     }
 
+    splitTextIntoSentences(post: string): string[] {
+        var sentences: string[] = [];
+        //if not all whitepsace
+        if (/\S/.test(post)) {
+            this.tokenizer.setEntry(post);
+            sentences = this.tokenizer.getSentences();
+        }
+        return sentences;
+    }
+
+    getWordCount(post: string): number {
+        var sentences: string[] = this.splitTextIntoSentences(post);
+
+        var wordCount: number = 0;
+        sentences.forEach((_, index) => {
+            var tokens = this.tokenizer.getTokens(index);
+            wordCount += tokens.length;
+        });
+
+        return wordCount;
+    }
+
     // sum up all child posts for each parent
-    getAllOriginalReplies(condensedData: CondensedText, parentIndex: number[]): string[][] {
-        var originalRepliesArr: string[][] = [];
+    buildParentChildPosts(userComments: UserComment[], parentIndex: number[]): ParentPosts[] {
+        var allParentPosts: ParentPosts[] = [];
 
-        var firstSentence: (string | null)[] = condensedData.firstSentence;
-        var remainingSentences: (string | null)[] = condensedData.notFstSentence;
-
-        //Iterate through each parent post index
+        // Iterate through each parent post index
         for (var i = 0; i < parentIndex.length - 1; i++) {
-            var allChildComments: string[] = [];
-
-            //Combine all the children posts for that parent
-            for (var j = parentIndex[i] + 1; j < parentIndex[i + 1]; j++) {
-                var childComment: string = "";
-                if (firstSentence[j] != null) {
-                    childComment += firstSentence[j];
-                    if (remainingSentences[j] != null) {
-                        childComment += " " + remainingSentences[j];
-                    }
-
-                    //append a period to the end of the post if there isn't any punctuation
-                    var punctutation = ".!?";
-                    if (punctutation.indexOf(childComment[childComment.length - 1]) == -1 &&
-                        punctutation.indexOf(childComment[childComment.length - 2]) == -1) {
-                        childComment += ".";
-                    }
-
-                    allChildComments.push(childComment);
-                }
+            var parentPosts: ParentPosts = {
+                parentComment: userComments[parentIndex[i]],
+                childComments: userComments.slice(parentIndex[i] + 1, parentIndex[i + 1]),
             }
-
-            originalRepliesArr.push(allChildComments);
+            allParentPosts.push(parentPosts);
         }
 
-        return originalRepliesArr;
+        return allParentPosts;
+    }
+
+    addPunctuationIfMissing(content: string): string {
+        var punctutation = ".!?";
+
+        // Check if last two characters have punctuation
+        // Assumes this string has been sanitized and extra whitespace is removed
+        if (punctutation.indexOf(content[content.length - 1]) == -1 &&
+            punctutation.indexOf(content[content.length - 2]) == -1) {
+            return content + ".";
+        } else {
+            return content;
+        }
+    }
+
+    getAllOriginalReplies(parentPosts: ParentPosts[]): string[][] {
+        const MIN_WORDS = 5;
+        return parentPosts.map((parentPost) => {
+            return parentPost.childComments
+                // filter out comments that are too short
+                .filter((childComment) => this.getWordCount(childComment.content) >= MIN_WORDS)
+                .map((childComment) => {
+                    // Remove extra whitespace
+                    var newComment = childComment.content.replace(/\s+/g, " ");
+                    return this.addPunctuationIfMissing(newComment);
+                });
+        })
     }
 
     //Helper wrapper function to summarize a block of text
     summarizeText(content: string, numSentences: number): string[] {
         var sortedArr: string[] = [];
-        summaryTool.getSortedSentences(content, numSentences, function(err: Error, sorted_sentences: string[]) {
+        summaryTool.getSortedSentences(content, numSentences, function (err: Error, sorted_sentences: string[]) {
             if (err) {
                 console.log("There was an error.");
                 return [];
@@ -381,30 +378,22 @@ export class AtomParser {
     }
 
     getSummaryReplies(allPosts: string[][]): string[][] {
-        var getArrayToStr = function(arr: string[]): string {
-            var tempStr: string = "";
-            arr.forEach((currentStr) => {
-                tempStr += currentStr + "\n";
-            });
-            return tempStr;
+        var getArrayToStr = function (arr: string[]): string {
+            return arr.join("\n") + "\n";
         }
 
-        var summaryArr: string[][] = [];
-        allPosts.forEach((replyArr: string[]) => {
-            var title = '';
+        return allPosts.map((replyArr: string[]) => {
             //build content string by separating reply posts with a newline
             var content: string = getArrayToStr(replyArr);
 
             //nothing to summarize
             if (replyArr.length == 0) {
-                summaryArr.push([]);
-                return;
+                return [];
             }
 
             //no need to summarize if under 250 chars
             if (content.length < 250) {
-                summaryArr.push(replyArr);
-                return;
+                return replyArr;
             }
 
             //summarize the content into a half each time until it is short enough
@@ -418,14 +407,12 @@ export class AtomParser {
                 newStr = getArrayToStr(newSummary);
             } while (lengthSummary > 10);
 
-            summaryArr.push(newSummary);
             // getSummaryRatio(content, newSummary);
+            return newSummary;
         });
-
-        return summaryArr;
     }
 
-    sortImportantParents(originalRepliesArr: string[][], parentIndex: number[]): number[] {
+    markParentIndexWithoutChildren(originalRepliesArr: string[][], parentIndex: number[]): number[] {
         var summaryArr: string[][] = this.getSummaryReplies(originalRepliesArr);
         var newParentIndex: number[] = [];
         for (var i = 0; i < parentIndex.length - 1; i++) {
@@ -537,43 +524,36 @@ export class AtomParser {
             matchingSentences.sort(sortByPostIndex);
 
             //remove duplicates
-            for (var i = 1; i < matchingSentences.length;) {
-                var isSamePostIndex = (matchingSentences[i - 1][0] == matchingSentences[i][0]);
-                var isSameSentence = (matchingSentences[i - 1][1] == matchingSentences[i][1]);
-                if (isSamePostIndex && isSameSentence) {
-                    matchingSentences.splice(i, 1);
-                } else {
-                    i++;
-                }
-            }
+            matchingSentences = [...new Set(matchingSentences)]
 
             var combinedSentences = matchingSentences.map((tuple) => tuple[1]).join(" ");
-            var strArr: string[] = [];
-            strArr.push(combinedSentences);
-
-            summaryReplies.push(strArr);
+            summaryReplies.push([combinedSentences]);
         });
 
         return summaryReplies;
     }
 
     getDisplayData(text: string) {
-        var postData: PostData = this.getPostData(text);
-        var userData: UserInfo = this.getUserInfo(postData);
-        var condensedData: CondensedText = this.getCondensedText(userData.userData);
-        var originalRepliesArr: string[][] = this.getAllOriginalReplies(condensedData, userData.parentIndex);
+        var postData: TitleComments = this.buildPostDataFromString(text);
+        var userComments: UserComment[] = this.parseUserAndCommentFromPosts(postData.comments);
+        var parentIndex: number[] = this.buildParentIndex(userComments);
+        var parentPosts: ParentPosts[] = this.buildParentChildPosts(userComments, parentIndex);
+        
+        var condensedData: CondensedText = this.getCondensedTextForParent(parentPosts);
+        var originalRepliesArr: string[][] = this.getAllOriginalReplies(parentPosts);
 
-        var newParentIndex: number[] = this.sortImportantParents(originalRepliesArr, userData.parentIndex);
+        var newParentIndex: number[] = this.markParentIndexWithoutChildren(originalRepliesArr, parentIndex);
 
         var sentimentValues: SentimentValuePost = this.getSentimentValues(originalRepliesArr);
         var combinedReplies: string[][] = this.combineSummaryReplies(sentimentValues, originalRepliesArr);
 
         return {
             postData: postData,
-            userData: userData.userData,
+            postTitle: postData.title,
+            userData: userComments,
             firstSentence: condensedData.firstSentence,
-            notFstSentence: condensedData.notFstSentence,
-            parentIndex: userData.parentIndex,
+            remainingSentences: condensedData.remainingSentences,
+            parentIndex: parentIndex,
             originalReplies: originalRepliesArr,
             summaryArr: combinedReplies,
             newParentIndex: newParentIndex,

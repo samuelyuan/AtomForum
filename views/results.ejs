@@ -32,7 +32,7 @@
     <div class="container">
         <!-- Display title post -->
         <div class="alert alert-info" role="alert">
-            <b><%= displayData.userData[0] %></b>
+            <b><%= displayData.postTitle %></b>
         </div>
 
         <%  var numPost = 1; %>
@@ -54,25 +54,25 @@
                 <b>#<%= numPost %></b>
                 <% numPost++; %>
                 <!-- Show username in italics -->
-                <i><%= displayData.userData[index][0] %></i>
+                <i><%= displayData.userData[index].username %></i>
             </div>
             <div class="panel-body">
                 <%
                     var demoStr = "#demo" + index;
                     var idStr = "demo" + index;
                 %>
-                <% if (displayData.firstSentence[index] == null) { %>
+                <% if (displayData.firstSentence[i] == null) { %>
                     <!-- Show all of the content -->
-                    <p> <%= displayData.userData[index][1] %> </p>
+                    <p> <%= displayData.userData[index].content %> </p>
                 <% } else { %>
                      <!-- Display first sentence -->
-                    <p> <%= displayData.firstSentence[index] %> </p>
-                    <% if (displayData.notFstSentence[index] != null) { %>
+                    <p> <%= displayData.firstSentence[i] %> </p>
+                    <% if (displayData.remainingSentences[i] != null) { %>
                         <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More...</a>
 
                         <!-- Show the rest of the content -->
                         <div id='<%= idStr %>' class="collapse">
-                            <p> <%= displayData.notFstSentence[index] %> </p>
+                            <p> <%= displayData.remainingSentences[i] %> </p>
                         </div>
                     <% } %>
                 <% } %>
