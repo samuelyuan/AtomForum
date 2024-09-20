@@ -1,5 +1,5 @@
 import { strict as assert } from 'assert';
-import { AtomParser, CondensedText, NumberStringTuple } from '../src/AtomParser';
+import { AtomParser, NumberStringTuple } from '../src/AtomParser';
 
 describe('AtomParser', function () {
     var atomParser = new AtomParser();
@@ -72,45 +72,9 @@ describe('AtomParser', function () {
 
     describe('#getCondensedText()', function () {
         it("Split text into first sentence and remaining sentences", function () {
-            var parentPosts = [
-                {
-                    parentComment: {
-                        username: 'user1',
-                        content: 'word1 word2 word3 word4 word5 word6 word7. sentence2word1 sentence2word2.',
-                        isParent: false,
-                    },
-                    childComments: [],
-                },
-                {
-                    parentComment: {
-                        username: 'user2',
-                        content: 'short sentence.',
-                        isParent: false,
-                    },
-                    childComments: [],
-                }
-            ]
-
-            var condensedText = atomParser.getCondensedTextForParent(parentPosts);
-            var expected: CondensedText = {
-                firstSentence: [
-                    'word1 word2 word3 word4 word5 word6 word7.',
-                    null
-                ],
-                remainingSentences: [
-                    'sentence2word1 sentence2word2.',
-                    null
-                ]
-            };
-
-            assert.equal(condensedText.firstSentence.length, expected.firstSentence.length);
-            assert.equal(condensedText.remainingSentences.length, expected.remainingSentences.length);
-            for (var i = 0; i < condensedText.firstSentence.length; i++) {
-                assert.equal(condensedText.firstSentence[i], expected.firstSentence[i]);
-            }
-            for (var i = 0; i < condensedText.remainingSentences.length; i++) {
-                assert.equal(condensedText.remainingSentences[i], expected.remainingSentences[i]);
-            }
+            var sentences = atomParser.splitTextIntoSentences('word1 word2 word3 word4 word5 word6 word7. sentence2word1 sentence2word2.');
+            assert.equal(sentences[0], "word1 word2 word3 word4 word5 word6 word7.");
+            assert.equal(sentences[1], "sentence2word1 sentence2word2.");
         });
     })
 
@@ -157,23 +121,53 @@ describe('AtomParser', function () {
                 },
             ]
 
-            var originalRepliesArr = atomParser.getAllOriginalReplies(parentPosts);
+            var originalRepliesArr = atomParser.cleanOriginalReplies(parentPosts);
             var expected = [
-                [ // parent is 'sentence1 sentence1 part2.'
-                    'sentence2 word1 word2 word3 word4.',
-                    'sentence3 sentence3 part2 part3 part4.',
-                ],
-                [ // parent is 'sentence4.'
-                    'sentence5 word1 word2 word3 word4.',
-                    'sentence6 word1 word2 word3 word4.'
-                ]
+                {
+                    parentComment: {
+                        username: "parentuser1",
+                        content: "sentence1 sentence1 part2.",
+                        isParent: true,
+                    },
+                    childComments: [
+                        {
+                            username: "user1",
+                            content: "sentence2 word1 word2 word3 word4.",
+                            isParent: false,
+                        },
+                        {
+                            username: "user2",
+                            content: "sentence3 sentence3 part2 part3 part4.",
+                            isParent: false,
+                        }
+                    ]
+                },
+                {
+                    parentComment: {
+                        username: "parentuser2",
+                        content: "sentence4.",
+                        isParent: true,
+                    },
+                    childComments: [
+                        {
+                            username: "user3",
+                            content: "sentence5 word1 word2 word3 word4.",
+                            isParent: false,
+                        },
+                        {
+                            username: "user4",
+                            content: "sentence6 word1 word2 word3 word4.",
+                            isParent: false,
+                        }
+                    ]
+                },
             ];
 
             assert.equal(originalRepliesArr.length, expected.length);
             for (var i = 0; i < originalRepliesArr.length; i++) {
-                assert.equal(originalRepliesArr[i].length, expected[i].length);
-                for (var j = 0; j < originalRepliesArr[i].length; j++) {
-                    assert.equal(originalRepliesArr[i][j], expected[i][j]);
+                assert.equal(originalRepliesArr[i].childComments.length, expected[i].childComments.length);
+                for (var j = 0; j < originalRepliesArr[i].childComments.length; j++) {
+                    assert.deepStrictEqual(originalRepliesArr[i].childComments[j], expected[i].childComments[j]);
                 }
             }
         })
@@ -198,21 +192,30 @@ describe('AtomParser', function () {
                 ],
             ];
             var originalRepliesArr = [
-                [],
-                [
-                    "",
-                    "Sentence2part1word1 part1word2 word3. Sentence2part2word1 part1word2 word3.",
-                    "Sentence3",
-                    "Sentence4",
-                    "Sentence5 word1 word2",
-                    "Sentence6",
-                    "Sentence7",
-                    "Sentence8",
-                    "Sentence9",
-                    "Sentence10",
-                    "Sentence11 word1 word2"
-                ],
-                [],
+                {
+                    parentComment: {username: "", content: "", isParent: true},
+                    childComments: [],
+                },
+                {
+                    parentComment: {username: "", content: "", isParent: true},
+                    childComments: [
+                        {username: "", content: "", isParent: false},
+                        {username: "", content: "Sentence2part1word1 part1word2 word3. Sentence2part2word1 part1word2 word3.", isParent: false},
+                        {username: "", content: "Sentence3", isParent: false},
+                        {username: "", content: "Sentence4", isParent: false},
+                        {username: "", content: "Sentence5 word1 word2", isParent: false},
+                        {username: "", content:  "Sentence6", isParent: false},
+                        {username: "", content: "Sentence7", isParent: false},
+                        {username: "", content: "Sentence8", isParent: false},
+                        {username: "", content: "Sentence9", isParent: false},
+                        {username: "", content: "Sentence10", isParent: false},
+                        {username: "", content: "Sentence11 word1 word2", isParent: false},
+                    ]
+                },
+                {
+                    parentComment: {username: "", content: "", isParent: true},
+                    childComments: [],
+                },
             ]
             var index = 1;
 

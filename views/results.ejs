@@ -36,10 +36,8 @@
         </div>
 
         <%  var numPost = 1; %>
-        <%  for (var i = 0; i < displayData.parentIndex.length; i++) {
-
-            var index = displayData.parentIndex[i];
-            var post = displayData.postData[index];
+        <%  for (var i = 0; i < displayData.newParentIndex.length; i++) {
+            var index = i;
 
             //skip if no replies
             if (displayData.newParentIndex[i] == -1) {
@@ -54,25 +52,25 @@
                 <b>#<%= numPost %></b>
                 <% numPost++; %>
                 <!-- Show username in italics -->
-                <i><%= displayData.userData[index].username %></i>
+                <i><%= displayData.displayPosts[i].parentPostUsername %></i>
             </div>
             <div class="panel-body">
                 <%
                     var demoStr = "#demo" + index;
                     var idStr = "demo" + index;
                 %>
-                <% if (displayData.firstSentence[i] == null) { %>
+                <% if (displayData.displayPosts[i].parentPostPreview == null) { %>
                     <!-- Show all of the content -->
-                    <p> <%= displayData.userData[index].content %> </p>
+                    <p> <%= displayData.displayPosts[i].parentPostOriginal %> </p>
                 <% } else { %>
                      <!-- Display first sentence -->
-                    <p> <%= displayData.firstSentence[i] %> </p>
-                    <% if (displayData.remainingSentences[i] != null) { %>
+                    <p> <%= displayData.displayPosts[i].parentPostPreview  %> </p>
+                    <% if (displayData.displayPosts[i].parentPostRemaining != null) { %>
                         <a data-toggle="collapse" data-target='<%= demoStr %>'>Show More...</a>
 
                         <!-- Show the rest of the content -->
                         <div id='<%= idStr %>' class="collapse">
-                            <p> <%= displayData.remainingSentences[i] %> </p>
+                            <p> <%= displayData.displayPosts[i].parentPostRemaining %> </p>
                         </div>
                     <% } %>
                 <% } %>
@@ -88,8 +86,8 @@
             var originalStr = "#" + originalIDStr;
         %>
         <%
-            if (displayData.summaryArr[i] == null) { continue; }
-            if (displayData.summaryArr[i].length == 0) { continue; }
+            if (displayData.displayPosts[i].summary == null) { continue; }
+            if (displayData.displayPosts[i].summary.length == 0) { continue; }
         %>
 
         <!-- Start collapsing all replies from here -->
@@ -101,7 +99,7 @@
                         <i>Auto-Summary</i>
                     </div>
                     <div class="panel-body">
-                        <% displayData.summaryArr[i].forEach(function(line) { %>
+                        <% displayData.displayPosts[i].summary.forEach(function(line) { %>
                             <p> <%= line %> </p>
                         <% }); %>
                         <hr />
@@ -110,12 +108,14 @@
                         <a data-toggle="collapse" data-target='<%= originalStr %>'>View Original Replies</a>
                         <div id='<%= originalIDStr %>' class="collapse">
                             <div class="panel-body">
-                                <% displayData.originalReplies[i].forEach(function(line, postIndex) { %>
+                                <% displayData.displayPosts[i].childPosts.forEach(function(sentimentValuePost, postIndex) { %>
+                                    <% line = sentimentValuePost.post; %>
                                     <% if (line == "") { return; } %>
                                 
-                                    <% sentimentVal = displayData.sentimentValues[i][postIndex].score; %>
-                                    <% posWords = displayData.sentimentValues[i][postIndex].positive; %>
-                                    <% negWords = displayData.sentimentValues[i][postIndex].negative; %>
+                                    <% result = sentimentValuePost.sentimentValue; %>
+                                    <% sentimentVal = result.score; %>
+                                    <% posWords = result.positive; %>
+                                    <% negWords = result.negative; %>
                                 
                                     <% backgroundColor = ""; %>
                                     <% if (sentimentVal > 0) { %>
@@ -126,6 +126,7 @@
                                         <% backgroundColor = "background-color: rgba(255, 0, 0, " + (-sentimentVal * 0.05) + ")"; %>
                                     <% } %>
                                     
+                                    <span><%= sentimentValuePost.username %></span>
                                     <span class="glyphicon glyphicon-stats"></span>
                                     <span class="label label-success"><%= posWords %></span>
                                     <span class="label label-danger"><%= negWords %></span>
