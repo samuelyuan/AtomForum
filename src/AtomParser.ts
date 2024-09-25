@@ -66,18 +66,20 @@ export class AtomParser {
     }
 
     getStartEndLines(text: string) {
-        var lineNumberProfile = 0;
         var startDisplayLine = 0;
         var endDisplayLine = 0;
 
         var isReddit = false;
 
         // split data into posts
-        text.split("goldreply").forEach((sentence) => {
+        var posts = text.split("goldreply").map((sentence) => {
             sentence = sentence.replace(/\s+/g, " ")
                 .replace(/[^a-zA-Z0-9 ]/g, "");
+            return sentence;
+        });
 
-            lineNumberProfile++;
+        posts.forEach((sentence, index) => {
+            var lineNumberProfile = index + 1;
 
             //For most online forums
             if (this.isWordInSentence(sentence, "profile")) {
@@ -150,33 +152,32 @@ export class AtomParser {
         return title.substring(0, title.indexOf(")") + 1);
     }
 
+    getTitlePost(originalPost: string) {
+        var newPost = originalPost;
+
+        //remove extra information before the start marker
+        newPost = newPost.substring(newPost.indexOf("2ex; padding-right: 5px; }"));
+        //remove the start marker
+        var startMarker = /2ex; padding-right: 5px; }[0-9]+/g;
+        newPost = newPost.replace(startMarker, "");
+
+        //Element 0 is the title
+        //Element 1 is the first post
+        var newPostArr = newPost.split("\[\–\]");
+
+        return {
+            titleStr: newPostArr[0],
+            firstPost: newPostArr[1]
+        };
+    }
+
+    getRegularPost(originalPost: string): string {
+        return originalPost.replace("\[\–\]", "");
+    }
+
     buildPostDataFromString(text: string): TitleComments {
         var postData: string[] = [];
         var lineMarkers = this.getStartEndLines(text);
-
-        var getTitlePost = function (originalPost: string) {
-            var newPost = originalPost;
-
-            //remove extra information before the start marker
-            newPost = newPost.substring(newPost.indexOf("2ex; padding-right: 5px; }"));
-            //remove the start marker
-            var startMarker = /2ex; padding-right: 5px; }[0-9]+/g;
-            newPost = newPost.replace(startMarker, "");
-
-            //Element 0 is the title
-            //Element 1 is the first post
-            var newPostArr = newPost.split("\[\–\]");
-
-            return {
-                titleStr: newPostArr[0],
-                firstPost: newPostArr[1]
-            };
-        }
-
-        var getRegularPost = function (originalPost: string): string {
-            var newPost = originalPost;
-            return newPost.replace("\[\–\]", "");
-        }
 
         //Split the data into individual posts
         var titleStr: string = "";
@@ -190,12 +191,12 @@ export class AtomParser {
             if (lineNumberProfile >= lineMarkers.startLine &&
                 lineNumberProfile <= lineMarkers.endLine) {
                 if (lineNumberProfile == lineMarkers.startLine) {
-                    var titlePost = getTitlePost(post);
+                    var titlePost = this.getTitlePost(post);
 
                     titleStr = titlePost.titleStr;
                     postData.push(titlePost.firstPost);
                 } else {
-                    postData.push(getRegularPost(post));
+                    postData.push(this.getRegularPost(post));
                 }
             }
         });
@@ -488,9 +489,7 @@ export class AtomParser {
         var summaryNeutral = this.getSummaryReplies(sentimentValues.neutralPosts);
         var summaryNeg = this.getSummaryReplies(sentimentValues.negativePosts);
 
-        var summaryReplies: string[][] = [];
-
-        summaryPos.forEach((_, index) => {
+        return summaryPos.map((_, index) => {
             //rearrange the order of the post sentences to better match the original
             var matchingSentences: NumberStringTuple[] = [];
 
@@ -508,33 +507,26 @@ export class AtomParser {
             matchingSentences = [...new Set(matchingSentences)]
 
             var combinedSentences = matchingSentences.map((tuple) => tuple[1]).join(" ");
-            summaryReplies.push([combinedSentences]);
+            return [combinedSentences];
         });
-
-        return summaryReplies;
     }
 
     buildDisplayPosts(originalRepliesArr: ParentPosts[], summaryArr: string[][], sentimentArr: SentimentValuePost[][]): DisplayPost[] {
-        var displayPosts: DisplayPost[] = [];
-
-        for (var i = 0; i < summaryArr.length; i++) {
+        return summaryArr.map((_, i) => {
             var parentCommentObject = originalRepliesArr[i].parentComment;
             var parentComment = parentCommentObject.content;
             var sentences: string[] = this.splitTextIntoSentences(parentComment);
 
-            // When rendering parent posts, only first sentence will be shown. The user will need to click "Show more" to see the remaining sentences.
             var displayPost: DisplayPost = {
                 parentPostUsername: parentCommentObject.username,
                 parentPostOriginal: parentComment,
-                parentPostPreview: sentences[0],
-                parentPostRemaining: this.getRemainingSentences(sentences),
+                parentPostPreview: sentences[0], // When rendering parent posts, only first sentence will be shown. 
+                parentPostRemaining: this.getRemainingSentences(sentences), // The user will need to click "Show more" to see the remaining sentences.
                 summary: summaryArr[i],
                 childPosts: sentimentArr[i],
             };
-            displayPosts.push(displayPost);
-        }
-
-        return displayPosts;
+            return displayPost;
+        });
     }
 
     getDisplayData(text: string) {
