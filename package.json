@@ -4,10 +4,10 @@
   "description": "A website that takes entire forum threads and outputs a summary.",
   "private": true,
   "dependencies": {
-    "axios": "^1.7.7",
+    "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "ejs": "^3.1.10",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "lodash": "^4.17.21",
     "path": "^0.12.7",
     "sbd": "^1.0.19",
@@ -15,11 +15,11 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "@types/mocha": "^10.0.9",
+    "@types/mocha": "^10.0.10",
     "@types/sentiment": "^5.0.4",
-    "mocha": "^10.8.2",
+    "mocha": "^11.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.7.2"
   },
   "scripts": {
     "start": "node ./dist/server.js",
