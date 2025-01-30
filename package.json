@@ -17,9 +17,9 @@
     "@types/express": "^5.0.0",
     "@types/mocha": "^10.0.10",
     "@types/sentiment": "^5.0.4",
-    "mocha": "^11.0.1",
+    "mocha": "^11.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.3"
   },
   "scripts": {
     "start": "node ./dist/server.js",

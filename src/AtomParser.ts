@@ -239,13 +239,9 @@ export class AtomParser {
     }
 
     buildParentIndex(userComments: UserComment[]): number[] {
-        var parentIndex: number[] = [];
-        userComments.forEach((userComment: UserComment, index: number) => {
-            if (userComment.isParent) {
-                parentIndex.push(index);
-            }
-        });
-        return parentIndex;
+        return userComments
+            .filter(userComment => userComment.isParent)
+            .map((_, index) => index);
     }
 
     getRemainingSentences(sentences: string[]): string | null {
@@ -254,7 +250,7 @@ export class AtomParser {
             return null;
         }
 
-        var nonEmptySentences = sentences.splice(1).filter((sentence) => sentence.length > 1);
+        var nonEmptySentences = sentences.slice(1).filter((sentence) => sentence.length > 1);
 
         if (nonEmptySentences.length == 0) {
             //There's nothing else to show
@@ -360,8 +356,8 @@ export class AtomParser {
     //Higher summary ratio is better
     getSummaryRatio(content: string, newSummaryArr: string[]) {
         var summaryLength: number = 0;
-        for (var index in newSummaryArr) {
-            summaryLength += newSummaryArr[index].length;
+        for (const summary of newSummaryArr) {
+            summaryLength += summary.length;
         }
 
         console.log("Original Content length: " + content.length);
@@ -395,7 +391,7 @@ export class AtomParser {
             var lengthSummary: number = replyArr.length;
             var newSummary: string[] = [];
             do {
-                lengthSummary /= 2;
+                lengthSummary = Math.floor(lengthSummary / 2);
                 newSummary = this.summarizeText(newStr, lengthSummary);
                 newStr = getArrayToStr(newSummary);
             } while (lengthSummary > 10);
