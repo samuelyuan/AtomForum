@@ -239,9 +239,13 @@ export class AtomParser {
     }
 
     buildParentIndex(userComments: UserComment[]): number[] {
-        return userComments
-            .filter(userComment => userComment.isParent)
-            .map((_, index) => index);
+        var parentIndex: number[] = [];
+        userComments.forEach((userComment: UserComment, index: number) => {
+            if (userComment.isParent) {
+                parentIndex.push(index);
+            }
+        });
+        return parentIndex;
     }
 
     getRemainingSentences(sentences: string[]): string | null {
