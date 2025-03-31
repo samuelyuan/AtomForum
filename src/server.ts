@@ -22,27 +22,39 @@ app.get('/', function (req: express.Request, res: express.Response) {
 app.get('/results', function (req: express.Request, res: express.Response) {
     var atomParser = new AtomParser();
 
-    // download that page
-    axios.get(req.query.url as string)
-        .then(function (response: AxiosResponse) {
-            console.log("Status: " + response.status);
-            const body = response.data;
+    // Initialize the AtomParser (which includes loading the summarizer)
+    atomParser.init().then(() => {
+        // Proceed with the axios request only after the summarizer is loaded
+        axios.get(req.query.url as string)
+            .then(async function (response: AxiosResponse) {  // Make the callback async
+                console.log("Status: " + response.status);
+                const body = response.data;
 
-            // load the page into cheerio
-            var $page = cheerio.load(body),
-                text = $page("body").text();
+                // Load the page into cheerio
+                const $page = cheerio.load(body);
+                const text = $page("body").text();
 
-            //get the data to display
-            var displayData = atomParser.getDisplayData(text);
+                try {
+                    // Await the asynchronous function to get the display data
+                    const displayData = await atomParser.getDisplayData(text);
 
-            res.render('results', {
-                displayData: displayData
+                    // Render the results with the awaited displayData
+                    res.render('results', {
+                        displayData: displayData
+                    });
+                } catch (error) {
+                    console.log("Error processing display data: ", error);
+                    res.status(500).send("Error processing display data");
+                }
+            })
+            .catch(function (error: Error) {
+                console.log("Couldn't get page because of error: " + error);
+                res.status(500).send("Couldn't fetch the page");
             });
-        })
-        .catch(function (error: Error) {
-            console.log("Couldn't get page because of error: " + error);
-            return;
-        });
+    }).catch((error: Error) => {
+        console.log("Error initializing AtomParser: ", error);
+        res.status(500).send("Error initializing summarizer");
+    });
 });
 
 app.listen(3000);

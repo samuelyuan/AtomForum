@@ -1,6 +1,7 @@
 import Tokenizer from './tokenizer/tokenizer.js';
 import Sentiment from 'sentiment';
 import summaryTool from './summary/summary.js';
+import { pipeline } from '@Xenova/transformers';
 
 export type NumberStringTuple = [number, string];
 
@@ -52,13 +53,23 @@ interface DisplayPost {
 }
 
 export class AtomParser {
-    sentiment: Sentiment;
+    oldNLPSentimentAnalyzer: Sentiment;
     tokenizer: Tokenizer;
+    newLLMSentimentAnalyzer: any;
 
     constructor() {
-        this.sentiment = new Sentiment();
+        this.oldNLPSentimentAnalyzer = new Sentiment();
         //Use a tokenizer to ensure better results
         this.tokenizer = new Tokenizer('');
+    }
+
+    async init() {
+        try {
+            this.newLLMSentimentAnalyzer = await pipeline('sentiment-analysis');
+            console.log('Transformers initialized successfully.');
+        } catch (error) {
+            console.error('Error initializing transformers:', error);
+        }
     }
 
     isWordInSentence(sentence: string, word: string): boolean {
@@ -370,39 +381,36 @@ export class AtomParser {
         console.log();
     }
 
-    getSummaryReplies(allPosts: string[][]): string[][] {
-        var getArrayToStr = function (arr: string[]): string {
-            return arr.join("\n") + "\n";
-        }
+    async getSummaryReplies(allPosts: string[][]): Promise<string[][]> {
+        const getArrayToStr = (arr: string[]): string => arr.join("\n") + "\n";
+    
+        return Promise.all(
+            allPosts.map(async (replyArr: string[]) => {
+                if (replyArr.length === 0) return [];
 
-        return allPosts.map((replyArr: string[]) => {
-            //build content string by separating reply posts with a newline
-            var content: string = getArrayToStr(replyArr);
+                //build content string by separating reply posts with a newline
+                const content = getArrayToStr(replyArr);
+    
+                //no need to summarize if under 250 chars
+                if (content.length < 250) {
+                    return replyArr;
+                }
 
-            //nothing to summarize
-            if (replyArr.length == 0) {
-                return [];
-            }
+                //summarize the content into a half each time until it is short enough
+                //(i.e. less than x sentences)
+                var newStr: string = content;
+                var lengthSummary: number = replyArr.length;
+                var newSummary: string[] = [];
+                do {
+                    lengthSummary = Math.floor(lengthSummary / 2);
+                    newSummary = this.summarizeText(newStr, lengthSummary);
+                    newStr = getArrayToStr(newSummary);
+                } while (lengthSummary > 10);
 
-            //no need to summarize if under 250 chars
-            if (content.length < 250) {
-                return replyArr;
-            }
-
-            //summarize the content into a half each time until it is short enough
-            //(i.e. less than x sentences)
-            var newStr: string = content;
-            var lengthSummary: number = replyArr.length;
-            var newSummary: string[] = [];
-            do {
-                lengthSummary = Math.floor(lengthSummary / 2);
-                newSummary = this.summarizeText(newStr, lengthSummary);
-                newStr = getArrayToStr(newSummary);
-            } while (lengthSummary > 10);
-
-            // getSummaryRatio(content, newSummary);
-            return newSummary;
-        });
+                // getSummaryRatio(content, newSummary);
+                return newSummary;
+            })
+        );
     }
 
     markParentIndexWithoutChildren(summaryArr: string[][], parentIndex: number[]): number[] {
@@ -422,16 +430,29 @@ export class AtomParser {
         });
     }
 
-    getSentimentValues(originalRepliesArr: ParentPosts[]): SentimentValuePost[][] {
-        return originalRepliesArr.map((parentPost) => {
-            return parentPost.childComments.map((post) => {
+    async getSentimentValues(originalRepliesArr: ParentPosts[]): Promise<SentimentValuePost[][]> {
+        return Promise.all(originalRepliesArr.map(async (parentPost) => {
+            return await Promise.all(parentPost.childComments.map(async (post) => {
+                const oldSentimentAnalysis = this.oldNLPSentimentAnalyzer.analyze(post.content);
+                const newSentimentAnalysis = await this.newLLMSentimentAnalyzer(post.content);
+
+                console.log("\nSentiment values:")
+                console.log("Old NLP Model - Post Sentiment value:", oldSentimentAnalysis, ", content:", post.content);
+                console.log("New LLM Model - Post Sentiment value:", newSentimentAnalysis, ", content:", post.content);
+                const sentimentValue = newSentimentAnalysis[0].label === 'NEGATIVE' 
+                    ? -1 * newSentimentAnalysis[0].score 
+                    : newSentimentAnalysis[0].score;
+
                 return {
-                    sentimentValue: this.sentiment.analyze(post.content),
+                    sentimentValue: {
+                        ...newSentimentAnalysis[0],
+                        score: sentimentValue,
+                    },
                     post: post.content,
                     username: post.username,
-                }
-            });
-        });
+                };
+            }));
+        }));
     }
 
     classifySentimentValues(sentimentValues: SentimentValuePost[][]): SentimentValueCategories {
@@ -474,40 +495,35 @@ export class AtomParser {
         return postIndices;
     }
 
-    combineSummaryReplies(sentimentValues: SentimentValueCategories, originalRepliesArr: ParentPosts[]): string[][] {
+    async combineSummaryReplies(
+        sentimentValues: SentimentValueCategories,
+        originalRepliesArr: ParentPosts[]
+    ): Promise<string[][]> {
         function sortByPostIndex(a: NumberStringTuple, b: NumberStringTuple) {
-            if (a[0] > b[0]) {
-                return 1;
-            } else if (a[0] == b[0]) {
-                return 0;
-            } else {
-                return -1;
-            }
+            return a[0] - b[0];
         }
-
-        var summaryPos = this.getSummaryReplies(sentimentValues.positivePosts);
-        var summaryNeutral = this.getSummaryReplies(sentimentValues.neutralPosts);
-        var summaryNeg = this.getSummaryReplies(sentimentValues.negativePosts);
-
+    
+        // Get summarized replies for each sentiment category
+        const [summaryPos, summaryNeutral, summaryNeg] = await Promise.all([
+            this.getSummaryReplies(sentimentValues.positivePosts),
+            this.getSummaryReplies(sentimentValues.neutralPosts),
+            this.getSummaryReplies(sentimentValues.negativePosts),
+        ]);
+    
         return summaryPos.map((_, index) => {
-            //rearrange the order of the post sentences to better match the original
-            var matchingSentences: NumberStringTuple[] = [];
-
-            var posIndices = this.getPostIndices(summaryPos, originalRepliesArr, index);
-            var neutralIndices = this.getPostIndices(summaryNeutral, originalRepliesArr, index);
-            var negIndices = this.getPostIndices(summaryNeg, originalRepliesArr, index);
-
-            posIndices.forEach((tuple) => matchingSentences.push(tuple));
-            neutralIndices.forEach((tuple) => matchingSentences.push(tuple));
-            negIndices.forEach((tuple) => matchingSentences.push(tuple));
-
-            matchingSentences.sort(sortByPostIndex);
-
-            //remove duplicates
-            matchingSentences = [...new Set(matchingSentences)]
-
-            var combinedSentences = matchingSentences.map((tuple) => tuple[1]).join(" ");
-            return [combinedSentences];
+            // Rearrange the order of the post sentences to better match the original
+            let matchingSentences: NumberStringTuple[] = [];
+    
+            // Collect post indices and sentences
+            [summaryPos, summaryNeutral, summaryNeg].forEach(summaryArr => {
+                matchingSentences.push(...this.getPostIndices(summaryArr, originalRepliesArr, index));
+            });
+    
+            // Sort and remove duplicates
+            matchingSentences = Array.from(new Set(matchingSentences)).sort(sortByPostIndex);
+    
+            // Combine sentences into a single string
+            return [matchingSentences.map(tuple => tuple[1]).join(" ")];
         });
     }
 
@@ -529,16 +545,16 @@ export class AtomParser {
         });
     }
 
-    getDisplayData(text: string) {
+    async getDisplayData(text: string) {
         var postData: TitleComments = this.buildPostDataFromString(text);
         var userComments: UserComment[] = this.parseUserAndCommentFromPosts(postData.comments);
         var parentIndex: number[] = this.buildParentIndex(userComments);
         var parentPosts: ParentPosts[] = this.buildParentChildPosts(userComments, parentIndex);
         var filteredParentPosts: ParentPosts[] = this.cleanOriginalReplies(parentPosts);
 
-        var sentimentArr: SentimentValuePost[][] = this.getSentimentValues(filteredParentPosts);
+        var sentimentArr: SentimentValuePost[][] = await this.getSentimentValues(filteredParentPosts);
         var sentimentValues: SentimentValueCategories = this.classifySentimentValues(sentimentArr);
-        var summaryArr: string[][] = this.combineSummaryReplies(sentimentValues, filteredParentPosts);
+        const summaryArr: string[][] = await this.combineSummaryReplies(sentimentValues, filteredParentPosts);
 
         var newParentIndex: number[] = this.markParentIndexWithoutChildren(summaryArr, parentIndex);
 
